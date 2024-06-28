@@ -1,9 +1,6 @@
-# This file train an LSTM model to predict the user of the sequence of trajectory data points
-# basically, this file train the smart teacher or the orginal model
-# model parameters will be saved next to the model in josn format
-
 import os
 import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from torch.utils.data import Subset
@@ -12,6 +9,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from utility.functions import custom_collate_fn
 from models.HoLSTM import LitHigherOrderLSTM
+from models.HoGRU import LitHigherOrderGRU
 from pytorch_lightning.callbacks import EarlyStopping
 import json
 import torch
@@ -24,20 +22,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
+MODEL_NAME = "GRU"  # model name that we are retraining
 
 DATASET_NAME = "nyc_checkins"
 # unlearning data sampler parameters
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
+RANDOM_SAMPLE_UNLEARNING_SIZES = [1000] # [10, 20, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
-
-MODEL_NAME = "LSTM"  # model name that we are training in this file
-
 # load model parameters
 model_params = json.load(
-    open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_model.json", "r"))
+    open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "r"))
 
 EMBEDDING_SIZE = model_params["embedding_size"]
 HIDDEN_SIZE = model_params["hidden_size"]
@@ -68,8 +64,14 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                                   collate_fn=custom_collate_fn, num_workers=24)
 
         # model
-        model = LitHigherOrderLSTM(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE,
+        if MODEL_NAME == "LSTM":
+            model = LitHigherOrderLSTM(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE,
                                    HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
+        elif MODEL_NAME == "GRU":
+            model = LitHigherOrderGRU(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE,
+                                   HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
+        else:
+            raise Exception("Model name is not defined correctly")
 
         # Configure the EarlyStopping callback
         early_stop_callback = EarlyStopping(
@@ -79,7 +81,10 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             verbose=True,
             mode='min'  # Because we want to minimize validation loss
         )
-
+        
+        os.makedirs(
+            f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}", exist_ok=True)
+        
         CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/checkpoints/"
         trainer = pl.Trainer(accelerator="gpu", devices=[
             0], max_epochs=MAX_EPOCHS, enable_progress_bar=True, enable_checkpointing=True, default_root_dir=CHECKPOINT_DIR, callbacks=[early_stop_callback])
@@ -89,11 +94,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             sample_size, i))
         trainer.fit(model, reamining_dloader, test_dloader)
 
-        os.makedirs(
-            f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}", exist_ok=True)
-
         # save the model
-        torch.save(model,
-                   f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt")
+        torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt")
         logging.info('Model is saved for the remaining data, unlearning sample size: %d, sample: %d' % (
             sample_size, i))
