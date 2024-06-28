@@ -14,8 +14,6 @@ import time
 import json
 import tqdm
 
-
-
 os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -36,11 +34,12 @@ UNLEANING_LOSS_SCALING = 5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE):
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
-        #results folder
+        # results folder
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}", exist_ok=True)
 
         unlearning_indices = torch.load(
@@ -60,27 +59,27 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             importance_calculator = ImportanceCalculator()
         importance_calculator.prepare(train_data + test_data)
 
-        # creating trainig, unlearning and testing data loaders
+        # creating training, unlearning and testing data loaders
         unlearning_dataset = Subset(train_data, unlearning_indices)
-        reamining_dataset = Subset(train_data, remaining_indices)
+        remaining_dataset = Subset(train_data, remaining_indices)
 
         unlearning_dloader = DataLoader(
             unlearning_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
         remaining_dloader = DataLoader(
-            reamining_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
+            remaining_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
         test_dloader = DataLoader(
             test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
 
         # Load initial model as the bad teacher
         stupid_teacher = torch.load(
-            f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt")
+            f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt").to(device)
         smart_teacher = torch.load(
-            f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt")
+            f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
         student = torch.load(
-            f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt")
+            f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
         
         retrained_model = torch.load(
-            f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt")
+            f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt").to(device)
 
         smart_teacher.eval()
         stupid_teacher.eval()
@@ -93,12 +92,16 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats = {}
             start_epoch_time = time.time()
             for unlearning_batch, remaining_batch in tqdm.tqdm(zip(unlearning_dloader, remaining_dloader)):
+                smart_teacher.eval()
+                stupid_teacher.eval()
+                retrained_model.eval()
                 student.train()
 
                 x_unlearning, y_unlearning = unlearning_batch
                 x_remaining, y_remaining = remaining_batch
 
-                # we do not need the labels be cause we are using the teacher models to generate the labels for the student
+                x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
+                x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
 
                 # define optimizer
                 optimizer = student.configure_optimizers()
@@ -110,8 +113,10 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
                 # Zero the parameter gradients
                 optimizer.zero_grad()
 
-                y_hat_unlearning = stupid_teacher(x_unlearning)
-                y_hat_remaining = smart_teacher(x_remaining)
+                with torch.no_grad():
+                    y_hat_unlearning = stupid_teacher(x_unlearning)
+                    y_hat_remaining = smart_teacher(x_remaining)
+                    
                 student_forget_output = student(x_unlearning)
                 student_remember_output = student(x_remaining)
 
@@ -127,7 +132,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
 
                 unlearning_loss = UNLEANING_LOSS_SCALING * unlearning_loss * \
                     torch.tensor(
-                        importance_calculator.calculate_importance(unlearning_batch))
+                        importance_calculator.calculate_importance(unlearning_batch)).to(device)
 
                 loss = torch.clamp(unlearning_loss.mean(), min=0.0) + \
                     torch.clamp(remembering_loss.mean(), min=0.0)
@@ -160,10 +165,6 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["unlearning_retrained_f1"] = retrained_f1.item()
            
             logging.info(f"Student Unlearning Accuracy@1: {student_accuracy_1}")
-            # logging.info(f"Student Unlearning F1: {student_f1}")
-            # logging.info(f"Retrained Unlearning Accuracy@1: {retrained_accuracy_1}")
-            # logging.info(f"Retrained Unlearning F1: {retrained_f1}")
-            # logging.info("++++++++++++++++++++++++++++++++++++++++++++++++")
             
             student_accuracy_1, student_accuracy_3, student_accuracy_5, student_precision, student_recall, student_f1 = student.test_model(test_dloader)
             retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(test_dloader)
@@ -181,19 +182,12 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["test_retrained_f1"] = retrained_f1.item()
             
             logging.info(f"Student Test Accuracy@1: {student_accuracy_1}")
-            # logging.info(f"Student Test F1: {student_f1}")
-            # logging.info(f"Retrained Test Accuracy@1: {retrained_accuracy_1}")
-            # logging.info(f"Retrained Test F1: {retrained_f1}")
             
             epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
             
-            # save unlerning model for this epoch
+            # save unlearning model for this epoch
             torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
             
             unlearning_stats[unlearning_epoch] = epoch_stats
         json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearning_stats-batch_size_{batch_size}.json", "w"))
-        logging.info(f"Unlearning models for each epoch now are saved for sampe size {sample_size}, no. {i}")
-            
-        # break
-    # break
-
+        logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")
