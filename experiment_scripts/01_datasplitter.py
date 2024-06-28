@@ -1,13 +1,14 @@
 # This script splits the training and testing data into 80% and 20% respectively. The training and testing data will be saved to the experiments forlder.
 
 # add utility to the path to import the dataset
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import json
 import torch
 import logging
 from utility.CheckInDataset import HexagonCheckInUserDataset
-import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')

@@ -13,7 +13,7 @@ DATASET_NAME = "nyc_checkins"
 RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
-NUMBER_OF_USER_UNLEARNING_SAMPLES = 10
+NUMBER_OF_USER_UNLEARNING_SAMPLES = 5
 
 os.makedirs(f"experiments/{DATASET_NAME}/unlearning/", exist_ok=True)
 
@@ -43,7 +43,6 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
 
 
 # sample user ids for unlearning
-
 random_user_ids = torch.randperm(stats['users_size']).tolist()
 random_user_ids = random_user_ids[:NUMBER_OF_USER_UNLEARNING_SAMPLES]
 

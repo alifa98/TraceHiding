@@ -4,8 +4,8 @@
 
 import os
 import sys
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import torch
 import json
 from pytorch_lightning.callbacks import EarlyStopping
