@@ -27,6 +27,7 @@ class LitHigherOrderLSTM(pl.LightningModule):
         return optim.Adam(self.parameters(), lr=1e-3)
     
     def training_step(self, train_batch, batch_idx):
+        self.train()
         x, y = train_batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
@@ -54,6 +55,8 @@ class LitHigherOrderLSTM(pl.LightningModule):
         recall = Accuracy(task='multiclass', num_classes=self.user_size, top_k=1).to(self.device)
         f1 = Accuracy(task='multiclass', num_classes=self.user_size, top_k=1).to(self.device)
         for x, y in data_loader:
+            x = x.to(self.device)
+            y = y.to(self.device)
             y_hat = self(x)
             accuracy_1(y_hat, y)
             accuracy_3(y_hat, y)
