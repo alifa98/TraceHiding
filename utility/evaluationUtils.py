@@ -4,6 +4,11 @@ from scipy.stats import entropy
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
+def get_class_weights(labels):
+    class_counts = torch.bincount(labels.int())
+    total_samples = len(labels)
+    class_weights = total_samples / class_counts.float()
+    return class_weights
 
 def get_model_outputs(model, dataloader, device):
     model_outputs = []
@@ -29,32 +34,33 @@ def train_mia_model(mia_data_loader, in_feature_size, device):
         def __init__(self):
             super(MIA, self).__init__()
             self.model = torch.nn.Sequential(
-                torch.nn.Linear(in_feature_size, 128),
+                torch.nn.Linear(in_feature_size, 100),
                 torch.nn.ReLU(),
-                torch.nn.Linear(128, 1),
-                torch.nn.Sigmoid()
+                torch.nn.Linear(100, 1),
             )
         
         def forward(self, x):
             return self.model(x)
     
     mia_model = MIA().to(device)
-    loss_fn = torch.nn.BCELoss()
-    optimizer = torch.optim.Adam(mia_model.parameters(), lr=1e-4)
+    class_weights = get_class_weights(mia_data_loader.dataset.tensors[1])
+    loss_fn =  torch.nn.BCEWithLogitsLoss(pos_weight=class_weights[1])
+    optimizer = torch.optim.Adam(mia_model.parameters(), lr=0.001)
     
-    mia_model.train()
+    
     # early stopping with patience of 5 epochs
     best_loss = float('inf')
     best_model = None
     no_improvement = 0
     for epoch in range(100):
+        mia_model.train()
         pbar = tqdm(mia_data_loader, desc=f"Training MIA model, epoch {epoch + 1}", leave=False)
         for batch in pbar:
             inputs, labels = batch
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = mia_model(inputs)
-            loss = loss_fn(outputs, labels.unsqueeze(1))
+            loss = loss_fn(outputs.squeeze(), labels)
             loss.backward()
             optimizer.step()
             pbar.set_postfix({'loss': loss.item()})
@@ -65,12 +71,15 @@ def train_mia_model(mia_data_loader, in_feature_size, device):
             no_improvement = 0
         else:
             no_improvement += 1
+            
         if no_improvement >= 5:
-            logging.info(f"Early stopping at epoch {epoch + 1}")
+            logging.info(f"Early stopping at epoch {epoch + 1}, Best Loss: {best_loss}")
             break
         
-    logging.info(f"Best Loss: {best_loss}")
-    
+        ## training data accuracy
+        train_acc = evaluate_mia_model(mia_model, mia_data_loader, device)
+        logging.info(f"Epoch {epoch + 1}, Training Accuracy: {train_acc}")        
+        
     final_model = MIA().to(device)
     final_model.load_state_dict(best_model)
     return final_model
@@ -78,7 +87,7 @@ def train_mia_model(mia_data_loader, in_feature_size, device):
 
 def evaluate_mia_model(mia_model, data_loader, device):
     mia_model.eval()
-    outputs, _ = get_model_outputs(mia_model, data_loader, device)
-    predictions = (outputs > 0.5).float()
-    accuracy = accuracy_score(predictions.cpu(), data_loader.dataset.tensors[1].cpu())
+    outputs, true_labels = get_model_outputs(mia_model, data_loader, device)
+    predictions = (torch.sigmoid(outputs) > 0.5).float()
+    accuracy = accuracy_score(predictions.cpu(), true_labels.cpu())
     return accuracy
