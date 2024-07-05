@@ -83,8 +83,10 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
 
         smart_teacher.eval()
         stupid_teacher.eval()
-        retrained_model.eval()
         student.train()
+        
+        retrained_model.eval()
+        
 
         unlearning_stats = {}
         # Unlearning process
@@ -94,7 +96,6 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             for unlearning_batch, remaining_batch in tqdm.tqdm(zip(unlearning_dloader, remaining_dloader)):
                 smart_teacher.eval()
                 stupid_teacher.eval()
-                retrained_model.eval()
                 student.train()
 
                 x_unlearning, y_unlearning = unlearning_batch
