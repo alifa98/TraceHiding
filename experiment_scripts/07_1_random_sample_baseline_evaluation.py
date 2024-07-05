@@ -27,11 +27,11 @@ DATASET_NAME = "nyc_checkins"
 MODEL_NAME = "LSTM"
 BASELINE_METHOD = "retrained" # original, retrained, finetune, negrad, negradplus, badt, scrub
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [200] #[10, 20, 50, 100, 200, 300, 600, 1000]
+RANDOM_SAMPLE_UNLEARNING_SIZES = [600] #[10, 20, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 METRIC_NAMES = ["MIA"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
-MIA_TYPE = "NN" # ["RF", "NN"]
+MIA_TYPE = "RF" # ["RF", "NN"]
 # ---------------------------------------------------
 
 
@@ -115,7 +115,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                 mia_train_dataset = torch.utils.data.TensorDataset(mia_train_data, mia_train_labels)
                 mia_test_dataset = torch.utils.data.TensorDataset(mia_test_data, mia_test_labels)
             
-                mia_train_dataloader = DataLoader(mia_train_dataset, batch_size=64, shuffle=True)
+                mia_train_dataloader = DataLoader(mia_train_dataset, batch_size=128, shuffle=True)
                 mia_test_dataloader = DataLoader(mia_test_dataset, batch_size=len(mia_test_dataset))
                 
                 mia_model = train_mia_model(mia_train_dataloader, mia_test_data.shape[1], device)
@@ -125,15 +125,19 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                 print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")
             elif MIA_TYPE == "RF":
                 from sklearn.ensemble import RandomForestClassifier
+                from imblearn.over_sampling import SMOTE
                 
                 mia_train_data = mia_train_data.cpu().detach().numpy()
                 mia_train_labels = mia_train_labels.cpu().detach().numpy().astype(np.int32) # Class labels 
                 mia_test_data = mia_test_data.cpu().detach().numpy()
                 mia_test_labels = mia_test_labels.cpu().detach().numpy().astype(np.int32) # Class labels
                 
+                smote = SMOTE()
+                mia_train_data_resampled, mia_train_labels_resampled = smote.fit_resample(mia_train_data, mia_train_labels)
+
                 logging.info("Random Forest Training...")
                 mia_model = RandomForestClassifier()
-                mia_model.fit(mia_train_data, mia_train_labels)
+                mia_model.fit(mia_train_data_resampled, mia_train_labels_resampled)
                 
                 mia_predictions = mia_model.predict(mia_test_data)
                 mia_accuracy = accuracy_score(mia_test_labels, mia_predictions)
