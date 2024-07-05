@@ -11,7 +11,6 @@ from torch.utils.data import Subset
 from torch.utils.data import DataLoader
 import logging
 import torch
-import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from scipy.spatial.distance import euclidean
 import numpy as np
@@ -26,14 +25,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 DATASET_NAME = "nyc_checkins"
 MODEL_NAME = "LSTM"
-BASELINE_METHOD = "original" # original, retrained, finetune, negrad, negradplus, badt, scrub
+BASELINE_METHOD = "retrained" # original, retrained, finetune, negrad, negradplus, badt, scrub
 
 RANDOM_SAMPLE_UNLEARNING_SIZES = [200] #[10, 20, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 METRIC_NAMES = ["MIA"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
-
-
+MIA_TYPE = "NN" # ["RF", "NN"]
 # ---------------------------------------------------
 
 
@@ -103,24 +101,41 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             """
             
             output_remaining, _ = get_model_outputs(baseline_model, remaining_dloader, device)
-            output_remaining = torch.softmax(output_remaining, dim=1)
             output_test, _ = get_model_outputs(baseline_model, test_dloader, device)
-            output_test = torch.softmax(output_test, dim=1)
             
             mia_train_data = torch.cat((output_remaining, output_test), dim=0).to(device)
             mia_train_labels = torch.cat((torch.zeros(len(output_remaining)), torch.ones(len(output_test))), dim=0).to(device)
             
-            mia_test_data = torch.softmax(baseline_output_unlearning, dim=1).to(device)
+            mia_test_data = baseline_output_unlearning.to(device)
             mia_test_labels = torch.ones(len(baseline_output_unlearning)).to(device)
             
-            mia_train_dataset = torch.utils.data.TensorDataset(mia_train_data, mia_train_labels)
-            mia_test_dataset = torch.utils.data.TensorDataset(mia_test_data, mia_test_labels)
+            if MIA_TYPE == "NN":
+                mia_train_data = torch.softmax(mia_train_data, dim=1)
+                mia_test_data = torch.softmax(mia_test_data, dim=1)
+                mia_train_dataset = torch.utils.data.TensorDataset(mia_train_data, mia_train_labels)
+                mia_test_dataset = torch.utils.data.TensorDataset(mia_test_data, mia_test_labels)
             
-            mia_train_dataloader = DataLoader(mia_train_dataset, batch_size=64, shuffle=True)
-            mia_test_dataloader = DataLoader(mia_test_dataset, batch_size=len(mia_test_dataset))
-            
-            mia_model = train_mia_model(mia_train_dataloader, mia_test_data.shape[1], device)
-            
-            mia_accuracy = evaluate_mia_model(mia_model, mia_test_dataloader, device)
-            
-            print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")
+                mia_train_dataloader = DataLoader(mia_train_dataset, batch_size=64, shuffle=True)
+                mia_test_dataloader = DataLoader(mia_test_dataset, batch_size=len(mia_test_dataset))
+                
+                mia_model = train_mia_model(mia_train_dataloader, mia_test_data.shape[1], device)
+                
+                mia_accuracy = evaluate_mia_model(mia_model, mia_test_dataloader, device)
+                
+                print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")
+            elif MIA_TYPE == "RF":
+                from sklearn.ensemble import RandomForestClassifier
+                
+                mia_train_data = mia_train_data.cpu().detach().numpy()
+                mia_train_labels = mia_train_labels.cpu().detach().numpy().astype(np.int32) # Class labels 
+                mia_test_data = mia_test_data.cpu().detach().numpy()
+                mia_test_labels = mia_test_labels.cpu().detach().numpy().astype(np.int32) # Class labels
+                
+                logging.info("Random Forest Training...")
+                mia_model = RandomForestClassifier()
+                mia_model.fit(mia_train_data, mia_train_labels)
+                
+                mia_predictions = mia_model.predict(mia_test_data)
+                mia_accuracy = accuracy_score(mia_test_labels, mia_predictions)
+                
+                print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")    
