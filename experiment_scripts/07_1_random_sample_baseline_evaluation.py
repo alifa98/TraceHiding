@@ -17,6 +17,7 @@ from scipy.spatial.distance import euclidean
 import numpy as np
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # Helps with debugging CUDA errors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_float32_matmul_precision('high')
 
@@ -27,7 +28,7 @@ DATASET_NAME = "nyc_checkins"
 MODEL_NAME = "LSTM"
 BASELINE_METHOD = "original" # original, retrained, finetune, negrad, negradplus, badt, scrub
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
+RANDOM_SAMPLE_UNLEARNING_SIZES = [200] #[10, 20, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 METRIC_NAMES = ["MIA"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
@@ -106,17 +107,20 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             output_test, _ = get_model_outputs(baseline_model, test_dloader, device)
             output_test = torch.softmax(output_test, dim=1)
             
-            mia_train_data = torch.cat((output_remaining, output_test), dim=0)
+            mia_train_data = torch.cat((output_remaining, output_test), dim=0).to(device)
             mia_train_labels = torch.cat((torch.zeros(len(output_remaining)), torch.ones(len(output_test))), dim=0).to(device)
             
-            mia_test_data = torch.softmax(baseline_output_unlearning, dim=1)
+            mia_test_data = torch.softmax(baseline_output_unlearning, dim=1).to(device)
             mia_test_labels = torch.ones(len(baseline_output_unlearning)).to(device)
             
-            mia_train_dataloader = DataLoader(list(zip(mia_train_data, mia_train_labels)), batch_size=128, shuffle=True, num_workers=24)
-            mia_test_dataloader = DataLoader(list(zip(mia_test_data, mia_test_labels)), batch_size=len(mia_test_data), shuffle=False, num_workers=24)
+            mia_train_dataset = torch.utils.data.TensorDataset(mia_train_data, mia_train_labels)
+            mia_test_dataset = torch.utils.data.TensorDataset(mia_test_data, mia_test_labels)
+            
+            mia_train_dataloader = DataLoader(mia_train_dataset, batch_size=64, shuffle=True)
+            mia_test_dataloader = DataLoader(mia_test_dataset, batch_size=len(mia_test_dataset))
             
             mia_model = train_mia_model(mia_train_dataloader, mia_test_data.shape[1], device)
             
-            mia_accuracy = evaluate_mia_model(mia_model, mia_test_dataloader)
+            mia_accuracy = evaluate_mia_model(mia_model, mia_test_dataloader, device)
             
             print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")
