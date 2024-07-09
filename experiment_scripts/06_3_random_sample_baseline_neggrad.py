@@ -36,7 +36,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
         # results folder
-        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/finetune/", exist_ok=True)
+        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/", exist_ok=True)
 
         remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
         unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
@@ -119,8 +119,8 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
             
             # save unlearning model for this epoch
-            torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/finetune/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
+            torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
             
             unlearning_stats[unlearning_epoch] = epoch_stats
-        json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/finetune/unlearning_stats-batch_size_{FINETUNING_BATCH_SIZE}.json", "w"))
+        json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/unlearning_stats-batch_size_{NEG_GRAD_BATCH_SIZE}.json", "w"))
         logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")
