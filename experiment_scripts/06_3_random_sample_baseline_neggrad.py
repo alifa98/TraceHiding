@@ -3,8 +3,6 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utility.functions import custom_collate_fn
-from utility.EntropyImportance import EntropyImportance
-from utility.ImportanceCalculator import ImportanceCalculator
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -14,7 +12,7 @@ import time
 import json
 import tqdm
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -23,11 +21,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 DATASET_NAME = "nyc_checkins"
 MODEL_NAME = "LSTM"
 
-FINETUNING_BATCH_SIZE = 10
-PORTION_OF_FINE_TUNING_DATA = 0.5
-FINE_TUNING_EPOCHS = 15
-FINE_TUNING_LEARNING_RATE = 5*1e-5
-
+NEG_GRAD_BATCH_SIZE = 10
+NUMBER_OF_EPOCHS = 15
+NEG_GRAD_LEARNING_RAGE = 5*1e-5
+NEG_GRAD_PLUS = False # add reaminig data to gradient calculation
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
@@ -51,11 +48,8 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         remaining_dataset = Subset(train_data, remaining_indices)
         unlearning_dataset = Subset(train_data, unlearning_indices)
 
-        # select the random portion of the remaining data for fine-tuning
-        remaining_dataset = Subset(remaining_dataset, torch.randperm(len(remaining_dataset))[:int(PORTION_OF_FINE_TUNING_DATA*len(remaining_dataset))])
-        
-        remaining_dloader = DataLoader(remaining_dataset, batch_size=FINETUNING_BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
-        unlearning_dloader = DataLoader(unlearning_dataset, batch_size=len(unlearning_dataset), collate_fn=custom_collate_fn, num_workers=24)
+        remaining_dloader = DataLoader(remaining_dataset, batch_size=NEG_GRAD_BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
+        unlearning_dloader = DataLoader(unlearning_dataset, batch_size=NEG_GRAD_BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
         test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
 
         model = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
@@ -64,29 +58,41 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         
         unlearning_stats = {}
         # Unlearning process
-        for unlearning_epoch in range(FINE_TUNING_EPOCHS):
+        for unlearning_epoch in range(NUMBER_OF_EPOCHS):
             epoch_stats = {}
             start_epoch_time = time.time()
-            pbar = tqdm.tqdm(remaining_dloader, desc=f"Unlearning Epoch: {unlearning_epoch}")
-            for remaining_batch in pbar:
+            pbar = tqdm.tqdm(zip(unlearning_dloader, remaining_dloader), desc=f"Unlearning Epoch: {unlearning_epoch}")
+            for unlearning_batch, remaining_batch in pbar:
                 model.train()
 
+                x_unlearning, y_unlearning = unlearning_batch
+                x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
+                
                 x_remaining, y_remaining = remaining_batch
                 x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
+                
 
                 # define optimizer
                 optimizer = model.configure_optimizers()
 
                 # set the learning rate
                 for param_group in optimizer.param_groups:
-                    param_group['lr'] = FINE_TUNING_LEARNING_RATE
+                    param_group['lr'] = NEG_GRAD_LEARNING_RAGE
 
                 # Zero the parameter gradients
                 optimizer.zero_grad()
-                model_output = model(x_remaining)
-                loss = F.cross_entropy(model_output, y_remaining)
-                loss.backward()
-                optimizer.step()
+                
+                if NEG_GRAD_PLUS:
+                    model_output_remaining = model(x_remaining)
+                    model_output_unlearning = model(x_unlearning)
+                    loss = F.cross_entropy(model_output_remaining, y_remaining) - F.cross_entropy(model_output_unlearning, y_unlearning)
+                    loss.backward()
+                    optimizer.step()
+                else:
+                    model_output_unlearning = model(x_unlearning)
+                    loss = -1 * F.cross_entropy(model_output_unlearning, y_unlearning)
+                    loss.backward()
+                    optimizer.step()
 
             end_epoch_time = time.time()
 
