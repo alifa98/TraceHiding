@@ -11,8 +11,9 @@ import torch
 import time
 import json
 import tqdm
+import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -21,20 +22,38 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 DATASET_NAME = "nyc_checkins"
 MODEL_NAME = "LSTM"
 
-NEG_GRAD_BATCH_SIZE = 10
+RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
+NEG_GRAD_BATCH_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 NUMBER_OF_EPOCHS = 15
 NEG_GRAD_LEARNING_RAGE = 5*1e-5
 NEG_GRAD_PLUS = False # add reaminig data to gradient calculation
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
+for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATCH_SIZES):
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
+        ## create a new wandb run
+        wandb.init(
+            project="thesis_unlearning",
+            job_type="baseline",
+            name=f"negGrad-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
+            config={
+                "method_name": "neg_grad",
+                "dataset": DATASET_NAME,
+                "model": MODEL_NAME,
+                "sample_size": sample_size,
+                "batch_size": batch_size,
+                "repetition": i,
+                "learning_rate": NEG_GRAD_LEARNING_RAGE,
+                "neg_grad_plus": NEG_GRAD_PLUS,
+                "epochs": NUMBER_OF_EPOCHS
+            }
+        )
+        
         # results folder
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/", exist_ok=True)
 
@@ -48,8 +67,8 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         remaining_dataset = Subset(train_data, remaining_indices)
         unlearning_dataset = Subset(train_data, unlearning_indices)
 
-        remaining_dloader = DataLoader(remaining_dataset, batch_size=NEG_GRAD_BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
-        unlearning_dloader = DataLoader(unlearning_dataset, batch_size=NEG_GRAD_BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
+        remaining_dloader = DataLoader(remaining_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
+        unlearning_dloader = DataLoader(unlearning_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
         test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
 
         model = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
@@ -61,6 +80,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         for unlearning_epoch in range(NUMBER_OF_EPOCHS):
             epoch_stats = {}
             start_epoch_time = time.time()
+            total_epoch_loss = 0
             pbar = tqdm.tqdm(zip(unlearning_dloader, remaining_dloader), desc=f"Unlearning Epoch: {unlearning_epoch}")
             for unlearning_batch, remaining_batch in pbar:
                 model.train()
@@ -92,6 +112,8 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                     loss = -1 * F.cross_entropy(model_output_unlearning, y_unlearning)
                     loss.backward()
                     optimizer.step()
+                    
+                    total_epoch_loss += loss.item()
 
             end_epoch_time = time.time()
 
@@ -117,9 +139,15 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             
             epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
             
+            #wand logging
+            wandb.log(epoch_stats | {"unlearning_loss": total_epoch_loss})
+            
             # save unlearning model for this epoch
             torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
             
             unlearning_stats[unlearning_epoch] = epoch_stats
-        json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/unlearning_stats-batch_size_{NEG_GRAD_BATCH_SIZE}.json", "w"))
+            
+        wandb.finish()
+        
+        json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/unlearning_stats-batch_size_{batch_size}.json", "w"))
         logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")
