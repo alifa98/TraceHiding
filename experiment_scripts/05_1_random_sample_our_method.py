@@ -80,6 +80,10 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         unlearning_stats = {}
         # Unlearning process
         for unlearning_epoch in range(MAX_UNLEARNING_EPOCHS):
+            
+            #re-shuffle the remaining data
+            remaining_dloader = DataLoader(remaining_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
+            
             epoch_stats = {}
             start_epoch_time = time.time()
             for unlearning_batch, remaining_batch in tqdm.tqdm(zip(unlearning_dloader, remaining_dloader)):
