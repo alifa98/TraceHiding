@@ -26,7 +26,7 @@ RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 NEG_GRAD_BATCH_SIZES = [10, 20, 50, 50, 50, 50, 100, 100]
 NUMBER_OF_EPOCHS = 15
 NEG_GRAD_LEARNING_RAGE = 5*1e-5
-NEG_GRAD_PLUS = False # add reaminig data to gradient calculation
+NEG_GRAD_PLUS = True # add reaminig data to gradient calculation
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
@@ -107,12 +107,12 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATC
                     loss = F.cross_entropy(model_output_remaining, y_remaining) - F.cross_entropy(model_output_unlearning, y_unlearning)
                     loss.backward()
                     optimizer.step()
+                    total_epoch_loss += loss.item()
                 else:
                     model_output_unlearning = model(x_unlearning)
                     loss = -1 * F.cross_entropy(model_output_unlearning, y_unlearning)
                     loss.backward()
                     optimizer.step()
-                    
                     total_epoch_loss += loss.item()
 
             end_epoch_time = time.time()
