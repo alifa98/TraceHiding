@@ -23,7 +23,7 @@ DATASET_NAME = "nyc_checkins"
 MODEL_NAME = "LSTM"
 
 RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
-NEG_GRAD_BATCH_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
+NEG_GRAD_BATCH_SIZES = [10, 20, 50, 50, 50, 50, 100, 100]
 NUMBER_OF_EPOCHS = 15
 NEG_GRAD_LEARNING_RAGE = 5*1e-5
 NEG_GRAD_PLUS = False # add reaminig data to gradient calculation
@@ -40,9 +40,9 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATC
         wandb.init(
             project="thesis_unlearning",
             job_type="baseline",
-            name=f"negGrad-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
+            name=f"{"neg_grad_plus" if NEG_GRAD_PLUS else "neg_grad"}-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
-                "method_name": "neg_grad",
+                "method_name": "neg_grad_plus" if NEG_GRAD_PLUS else "neg_grad",
                 "dataset": DATASET_NAME,
                 "model": MODEL_NAME,
                 "sample_size": sample_size,
