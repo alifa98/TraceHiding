@@ -1,7 +1,6 @@
 import os
 import sys
 
-import wandb
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utility.functions import custom_collate_fn
@@ -13,6 +12,7 @@ import torch
 import time
 import json
 import tqdm
+import wandb
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 torch.set_float32_matmul_precision('high')
@@ -51,7 +51,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
                 "repetition": i,
                 "learning_rate": FINE_TUNING_LEARNING_RATE,
                 "portion_of_fine_tuning_data": PORTION_OF_FINE_TUNING_DATA,
-                "fine_tuning_epochs": FINE_TUNING_EPOCHS
+                "epochs": FINE_TUNING_EPOCHS
             }
         )
 
