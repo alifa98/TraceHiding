@@ -13,8 +13,9 @@ import torch
 import time
 import json
 import tqdm
+import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -29,7 +30,7 @@ REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [5, 10, 20, 50, 100, 150, 300, 500] # /2
 
-MAX_UNLEARNING_EPOCHS = 15
+MAX_UNLEARNING_EPOCHS = 10
 UNLEANING_LOSS_SCALING = 5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -38,7 +39,24 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE):
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
-
+        
+        
+        ## create a new wandb run
+        
+        wandb.init(
+            project="thesis_unlearning",
+            job_type="unlearning",
+            name=f"unlearning-{DATASET_NAME}-{MODEL_NAME}-{IMPORTANCE_NAME}-sample_size_{sample_size}-repetition_{i}",
+            config={
+                "dataset": DATASET_NAME,
+                "model": MODEL_NAME,
+                "importance": IMPORTANCE_NAME,
+                "sample_size": sample_size,
+                "batch_size": batch_size,
+                "repetition": i
+            }
+        )
+        
         # results folder
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}", exist_ok=True)
 
@@ -86,6 +104,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             
             epoch_stats = {}
             start_epoch_time = time.time()
+            total_epoch_loss = 0
             for unlearning_batch, remaining_batch in tqdm.tqdm(zip(unlearning_dloader, remaining_dloader)):
                 smart_teacher.eval()
                 stupid_teacher.eval()
@@ -124,17 +143,15 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
                     F.log_softmax(student_remember_output, dim=1), reduction='none', log_target=True
                 ).sum(dim=1)
 
-                unlearning_loss = UNLEANING_LOSS_SCALING * unlearning_loss * \
-                    torch.tensor(
-                        importance_calculator.calculate_importance(unlearning_batch)).to(device)
-
-                loss = torch.clamp(unlearning_loss.mean(), min=0.0) + \
-                    torch.clamp(remembering_loss.mean(), min=0.0)
-
+                unlearning_loss = UNLEANING_LOSS_SCALING * unlearning_loss * torch.tensor(importance_calculator.calculate_importance(unlearning_batch)).to(device)
+                loss = torch.clamp(unlearning_loss.mean(), min=0.0) + torch.clamp(remembering_loss.mean(), min=0.0)
                 loss.backward()
                 optimizer.step()
+                
+                total_epoch_loss += loss.item()
 
-                logging.info(f"Unlearning Epoch: {unlearning_epoch}, Loss: {loss.item()}")
+                # logging.info(f"Unlearning Epoch: {unlearning_epoch}, Loss: {loss.item()}")
+            
 
             end_epoch_time = time.time()
 
@@ -177,11 +194,17 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             
             logging.info(f"Student Test Accuracy@1: {student_accuracy_1}")
             
-            epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
+            epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
+            
+            #wand logging
+            wandb.log(epoch_stats | {"unlearning_loss": total_epoch_loss})
             
             # save unlearning model for this epoch
             torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
             
             unlearning_stats[unlearning_epoch] = epoch_stats
+            
+        wandb.finish()
+        
         json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearning_stats-batch_size_{batch_size}.json", "w"))
         logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")
