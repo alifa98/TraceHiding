@@ -66,12 +66,11 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                 model.train()
 
                 x_unlearning, y_unlearning = unlearning_batch
-                x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
-                
                 x_remaining, y_remaining = remaining_batch
+                
+                x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
                 x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
                 
-
                 # define optimizer
                 optimizer = model.configure_optimizers()
 
