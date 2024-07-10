@@ -115,12 +115,13 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
 
                 with torch.no_grad():
                     y_hat_remaining = smart_teacher(x_remaining)
+                    y_hat_unlearning = smart_teacher(x_unlearning)
                     
                 # doing the max step (forgetting) [minimizing on the negative of the unlearning loss]
                 student_forget_output = student(x_unlearning)
 
                 unlearning_loss = F.kl_div(
-                    F.log_softmax(y_hat_remaining, dim=1),
+                    F.log_softmax(y_hat_unlearning, dim=1),
                     F.log_softmax(student_forget_output, dim=1), reduction='none', log_target=True
                 ).sum(dim=1)
                 
