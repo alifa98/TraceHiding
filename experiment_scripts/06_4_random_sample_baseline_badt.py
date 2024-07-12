@@ -24,7 +24,7 @@ MODEL_NAME = "LSTM"
 RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [5, 10, 20, 50, 100, 150, 300, 500] # /2
 LEARNING_RATE = 5e-5
-UNLEARNING_EPOCHS = 20
+UNLEARNING_EPOCHS = 25
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
@@ -40,14 +40,14 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             job_type="baseline",
             name=f"badt-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
-                "method_name": "bad-teacher",
+                "method_name": "Bad Teacher",
                 "dataset": DATASET_NAME,
                 "model": MODEL_NAME,
+                "scenario": "Sample Deletion",
                 "sample_size": sample_size,
                 "batch_size": batch_size,
                 "repetition": i,
                 "learning_rate": LEARNING_RATE,
-                "epochs": UNLEARNING_EPOCHS
             }
         )
 

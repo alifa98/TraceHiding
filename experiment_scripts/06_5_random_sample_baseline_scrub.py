@@ -13,7 +13,7 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -25,11 +25,11 @@ MODEL_NAME = "LSTM"
 RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [5, 10, 20, 50, 100, 150, 300, 500] # /2
 LEARNING_RATE = 5e-5
-UNLEARNING_EPOCHS = 15
+UNLEARNING_EPOCHS = 25
 
 # SCRUB parameters (see the paper for more details)
-ALPHA = 0.5 # the cofficient for the forgetting loss term (student-teacher output)
-GAMMA = 0.5 # the cofficient for the cross-entropy loss term (student-remaining data)
+ALPHA = 0.9 # the cofficient for the forgetting loss term (student-teacher output)
+GAMMA = 0.1 # the cofficient for the cross-entropy loss term (student-remaining data)
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
@@ -44,14 +44,14 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             job_type="baseline",
             name=f"scrub-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
-                "method_name": "scrub",
+                "method_name": "SCRUB",
                 "dataset": DATASET_NAME,
                 "model": MODEL_NAME,
+                "scenario": "Sample Deletion",
                 "sample_size": sample_size,
                 "batch_size": batch_size,
                 "repetition": i,
                 "learning_rate": LEARNING_RATE,
-                "epochs": UNLEARNING_EPOCHS,
                 "alpha": ALPHA,
                 "gamma": GAMMA
             }

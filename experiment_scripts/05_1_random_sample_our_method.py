@@ -40,16 +40,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE):
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         
-        
         ## create a new wandb run
-        
         wandb.init(
             project="thesis_unlearning",
             job_type="unlearning",
             name=f"unlearning-{DATASET_NAME}-{MODEL_NAME}-{IMPORTANCE_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
+                "method_name": "TraceHiding",
                 "dataset": DATASET_NAME,
                 "model": MODEL_NAME,
+                "scenario": "Sample Deletion",
                 "importance": IMPORTANCE_NAME,
                 "sample_size": sample_size,
                 "batch_size": batch_size,

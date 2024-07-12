@@ -26,7 +26,7 @@ MODEL_NAME = "LSTM"
 RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
 FINETUNING_BATCH_SIZES = [5, 10, 20, 30, 40, 40, 50, 100]
 PORTION_OF_FINE_TUNING_DATA = 0.5
-FINE_TUNING_EPOCHS = 15
+FINE_TUNING_EPOCHS = 25
 FINE_TUNING_LEARNING_RATE = 5*1e-5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -43,15 +43,15 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
             job_type="baseline",
             name=f"finetune-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
-                "method_name": "finetune",
+                "method_name": "Finetune",
                 "dataset": DATASET_NAME,
                 "model": MODEL_NAME,
+                "scenario": "Sample Deletion",
                 "sample_size": sample_size,
                 "batch_size": batch_size,
                 "repetition": i,
                 "learning_rate": FINE_TUNING_LEARNING_RATE,
                 "portion_of_fine_tuning_data": PORTION_OF_FINE_TUNING_DATA,
-                "epochs": FINE_TUNING_EPOCHS
             }
         )
 
