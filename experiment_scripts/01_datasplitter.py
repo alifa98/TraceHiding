@@ -1,6 +1,3 @@
-# This script splits the training and testing data into 80% and 20% respectively. The training and testing data will be saved to the experiments forlder.
-
-# add utility to the path to import the dataset
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -14,7 +11,7 @@ from utility.CheckInDataset import HexagonCheckInUserDataset
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
-DATASET_NAME = "nyc_checkins"
+DATASET_NAME = "HO_NYC_Checkins"
 TRAJECTORY_COLUMN = 'poi'
 USER_COLUMN_NAME = 'user'
 SPLIT_RATIO = 0.8
@@ -43,14 +40,9 @@ logging.info(f"Number of cells: {stats['vocab_size']}")
 logging.info(f"Number of training samples: {stats['train_size']}")
 logging.info(f"Number of testing samples: {stats['test_size']}")
 
-torch.save(dataset.get_train_data(),
-           f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-torch.save(dataset.get_test_data(),
-           f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
-torch.save(dataset.cell_to_id,
-           f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt")
-json.dump(stats, open(
-    f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "w"))
+torch.save(dataset.get_train_data(), f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
+torch.save(dataset.get_test_data(), f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+torch.save(dataset.cell_to_id, f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt")
+json.dump(stats, open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "w"))
 
-logging.info(
-    f"Training data, Testing data, and their stats are saved to experiments/{DATASET_NAME}/splits/")
+logging.info(f"Training data, Testing data, and their stats are saved to experiments/{DATASET_NAME}/splits/")
