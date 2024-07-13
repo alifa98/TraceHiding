@@ -1,7 +1,3 @@
-# This file train an LSTM model to predict the user of the sequence of trajectory data points
-# basically, this file train the smart teacher or the orginal model
-# model parameters will be saved next to the model in josn format
-
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -16,21 +12,24 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import logging
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-MODEL_NAME = "LSTM"
-DATASET_NAME = "nyc_checkins"
+# ------------------------------------- START CONFIGURATIONS -------------------------------------#
+
+MODEL_NAME = "GRU"
+DATASET_NAME = "HO_NYC_Checkins"
 
 # MODEL PARAMETERS
 EMBEDDING_SIZE = 128
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 250
 NUMBER_OF_LAYERS = 2
 DROPOUT = 0.2
-BATCH_SIZE = 100
+BATCH_SIZE = 80
 MAX_EPOCHS = 300
 
+# ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
 
