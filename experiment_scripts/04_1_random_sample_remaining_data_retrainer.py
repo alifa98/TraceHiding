@@ -14,18 +14,15 @@ from pytorch_lightning.callbacks import EarlyStopping
 import json
 import torch
 
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
-MODEL_NAME = "LSTM"  # model name that we are retraining
 
-DATASET_NAME = "nyc_checkins"
-# unlearning data sampler parameters
-RANDOM_SAMPLE_UNLEARNING_SIZES = [1000] # [10, 20, 50, 100, 200, 300, 600, 1000]
+MODEL_NAME = "GRU"  # model name that we are retraining
+DATASET_NAME = "HO_NYC_Checkins"
+RANDOM_SAMPLE_UNLEARNING_SIZES = [100, 200, 300, 600, 1000] # [10, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -71,9 +68,9 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             mode='min'  # Because we want to minimize validation loss
         )
                 
-        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}", exist_ok=True)
+        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining", exist_ok=True)
         
-        CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/checkpoints/"
+        CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/checkpoints/"
         trainer = pl.Trainer(accelerator="gpu", devices=[0], max_epochs=MAX_EPOCHS, enable_progress_bar=True, enable_checkpointing=True, default_root_dir=CHECKPOINT_DIR, callbacks=[early_stop_callback])
 
         # train the model
@@ -81,5 +78,5 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         trainer.fit(model, reamining_dloader, test_dloader)
 
         # save the model
-        torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt")
+        torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt")
         logging.info(f'Model is saved for the remaining data, unlearning sample size: {sample_size}, sample: {i}')
