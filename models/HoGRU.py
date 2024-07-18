@@ -9,6 +9,7 @@ class LitHigherOrderGRU(pl.LightningModule):
     def __init__(self, vocab_size, user_size, embedding_size, hidden_size, num_layers, dropout=0.2):
         super(LitHigherOrderGRU, self).__init__()
         self.save_hyperparameters()
+        self.lr = 1e-3
         self.vocab_size = vocab_size
         self.user_size = user_size
         self.embeding = nn.Embedding(vocab_size + 1, embedding_size, padding_idx=0) # +1 for padding
@@ -24,7 +25,10 @@ class LitHigherOrderGRU(pl.LightningModule):
         return self.linear2(F.relu(self.linear1(x))) # output the logits
 
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=1e-3)
+        return optim.Adam(self.parameters(), lr=self.lr)
+    
+    def config_lr(self, lr):
+        self.lr = lr    
     
     def training_step(self, train_batch, batch_idx):
         self.train()
