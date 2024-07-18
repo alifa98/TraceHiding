@@ -13,18 +13,18 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-DATASET_NAME = "nyc_checkins"
+DATASET_NAME = "HO_NYC_Checkins"
 MODEL_NAME = "LSTM"
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
-UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [5, 10, 20, 50, 100, 150, 300, 500] # /2
+RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000]
+UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [10, 25, 50, 100, 100, 120, 125]
 LEARNING_RATE = 5e-5
-UNLEARNING_EPOCHS = 25
+UNLEARNING_EPOCHS = 15
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
@@ -36,7 +36,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         
         ## create a new wandb run
         wandb.init(
-            project="thesis_unlearning",
+            project="Unlearning Experiments",
             job_type="baseline",
             name=f"badt-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -73,16 +73,15 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         smart_teacher = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
         student = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
         
-        retrained_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt").to(device)
-
         smart_teacher.eval()
         stupid_teacher.eval()
         student.train()
         
-        retrained_model.eval()
-        
+        student.config_lr(LEARNING_RATE)
+        optimizer = student.configure_optimizers()
 
         unlearning_stats = {}
+        
         # Unlearning process
         for unlearning_epoch in range(UNLEARNING_EPOCHS):
             
@@ -103,13 +102,6 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
 
                 x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
                 x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
-
-                # define optimizer
-                optimizer = student.configure_optimizers()
-
-                # set the learning rate
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = LEARNING_RATE
 
                 # Zero the parameter gradients
                 optimizer.zero_grad()
@@ -164,7 +156,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
             
             #wand logging
-            wandb.log(epoch_stats | {"unlearning_loss": total_epoch_loss})
+            wandb.log(epoch_stats | {"loss": total_epoch_loss})
             
             # save unlearning model for this epoch
             torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/bad-t/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")

@@ -14,19 +14,19 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-DATASET_NAME = "nyc_checkins"
+DATASET_NAME = "HO_NYC_Checkins"
 MODEL_NAME = "LSTM"
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
-FINETUNING_BATCH_SIZES = [5, 10, 20, 30, 40, 40, 50, 100]
+RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000]
+FINETUNING_BATCH_SIZES = [10, 25, 50, 100, 100, 120, 125]
 PORTION_OF_FINE_TUNING_DATA = 0.5
-FINE_TUNING_EPOCHS = 25
+FINE_TUNING_EPOCHS = 15
 FINE_TUNING_LEARNING_RATE = 5*1e-5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -39,7 +39,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
 
         ## create a new wandb run
         wandb.init(
-            project="thesis_unlearning",
+            project="Unlearning Experiments",
             job_type="baseline",
             name=f"finetune-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -79,7 +79,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
         
         model.train()
         
+        model.config_lr(FINE_TUNING_LEARNING_RATE)
+        optimizer = model.configure_optimizers()
+        
         unlearning_stats = {}
+        
         # Unlearning process
         for unlearning_epoch in range(FINE_TUNING_EPOCHS):
             epoch_stats = {}
@@ -91,13 +95,6 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
 
                 x_remaining, y_remaining = remaining_batch
                 x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
-
-                # define optimizer
-                optimizer = model.configure_optimizers()
-
-                # set the learning rate
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = FINE_TUNING_LEARNING_RATE
 
                 # Zero the parameter gradients
                 optimizer.zero_grad()
@@ -133,7 +130,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
             epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
             
             #wand logging
-            wandb.log(epoch_stats | {"unlearning_loss": total_epoch_loss})
+            wandb.log(epoch_stats | {"loss": total_epoch_loss})
             
             # save unlearning model for this epoch
             torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/finetune/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")

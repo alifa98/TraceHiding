@@ -14,26 +14,26 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-os.environ["WANDB_MODE"] = "disabled"
+# os.environ["WANDB_MODE"] = "disabled"
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 DATASET_NAME = "HO_NYC_Checkins"
 MODEL_NAME = "LSTM"
-IMPORTANCE_NAME = "entropy"
+IMPORTANCE_NAME = "entropy" if len(sys.argv) < 2 else sys.argv[1]
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [600] #[10, 50, 100, 200, 300, 600, 1000]
-UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [100] #[10, 25, 50, 100, 100, 120, 125] # /2
+RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000] #[10, 50, 100, 200, 300, 600, 1000]
+UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [10, 25, 50, 100, 100, 120, 125] #[10, 25, 50, 100, 100, 120, 125] # /2
 
-MAX_UNLEARNING_EPOCHS = 25
+MAX_UNLEARNING_EPOCHS = 15
 INITIAL_LEARNING_RATE = 1e-4
 ALPHA = 0.9
 BETA = 10
 GAMMA = 0.1
-FORGETTING_POWER = 0.5 # gives tendency to forget loss in lamda calculation
+FORGETTING_INITIAL_POWER = 1.2 # gives tendency to forget loss in lamda calculation (it can be dynamic maybe)
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -46,7 +46,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         
         ## create a new wandb run
         wandb.init(
-            project="thesis_unlearning",
+            project="Unlearning Experiments",
             job_type="unlearning",
             name=f"unlearning-{DATASET_NAME}-{MODEL_NAME}-{IMPORTANCE_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -60,7 +60,9 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
                 "repetition": i,
                 "learning_rate": INITIAL_LEARNING_RATE,
                 "alpha": ALPHA,
-                "gamma": GAMMA
+                "gamma": GAMMA,
+                "beta": BETA,
+                "forgetting_initial_power": FORGETTING_INITIAL_POWER,
             }
         )
         
@@ -138,12 +140,13 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
                 total_loss = ALPHA * remembering_loss.mean().item() + GAMMA * cross_entropy_loss.item()
                 total_initial_remaining_loss += total_loss
 
-        lamda_dynamic = total_initial_unlearning_loss / (total_initial_remaining_loss + total_initial_unlearning_loss + FORGETTING_POWER)
+        lamda_dynamic = total_initial_unlearning_loss / (total_initial_remaining_loss + total_initial_unlearning_loss + FORGETTING_INITIAL_POWER)
         
         student.config_lr(INITIAL_LEARNING_RATE)
         optimizer = student.configure_optimizers()
 
         unlearning_stats = {}
+        
         # Unlearning process
         for unlearning_epoch in range(MAX_UNLEARNING_EPOCHS):
             
@@ -156,8 +159,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             
             epoch_stats = {}
             start_epoch_time = time.time()
-            total_epoch_remaining_loss = 0
-            total_epoch_unlearning_loss = 0
+            total_epoch_loss = 0
             for unlearning_batch, remaining_batch in tqdm.tqdm(zip(unlearning_dloader, remaining_dloader)):
                 smart_teacher.eval()
                 student.train()
@@ -199,7 +201,15 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
                 loss.backward()
                 optimizer.step()
                 
-                lamda_dynamic = loss_forget.item() / (loss_remember.item() + loss_forget.item() + FORGETTING_POWER)
+                total_epoch_loss += loss.item()
+                
+                if unlearning_epoch < 2 * MAX_UNLEARNING_EPOCHS /3 :
+                    # Consider Forgetting with power
+                    lamda_dynamic = loss_forget.item() / (loss_remember.item() + loss_forget.item() + (FORGETTING_INITIAL_POWER / (unlearning_epoch + 1)))
+                else:
+                    # Focus on retaining the knowledge
+                    lamda_dynamic = 1
+                
 
             end_epoch_time = time.time()
 
@@ -207,7 +217,6 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
 
             logging.info("-------------------------------------------------")
             logging.info(f"Epoch: {unlearning_epoch}")
-            logging.info(f"Total Unlearning Loss: {total_epoch_unlearning_loss}, Total Remaining Loss: {total_epoch_remaining_loss}, Total Loss: {total_epoch_remaining_loss + total_epoch_unlearning_loss}") 
             student_accuracy_1, student_accuracy_3, student_accuracy_5, student_precision, student_recall, student_f1 = student.test_model(unlearning_dloader)
             retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(unlearning_dloader)
             epoch_stats["unlearning_student_accuracy_1"] = student_accuracy_1.item()
@@ -247,7 +256,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
             
             # WandB logging
-            wandb.log(epoch_stats | {"loss": total_epoch_remaining_loss + total_epoch_unlearning_loss})
+            wandb.log(epoch_stats | {"loss": total_epoch_loss})
             
             # Save unlearning model for this epoch
             torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")

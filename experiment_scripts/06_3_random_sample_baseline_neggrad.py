@@ -13,20 +13,22 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-DATASET_NAME = "nyc_checkins"
+DATASET_NAME = "HO_NYC_Checkins"
 MODEL_NAME = "LSTM"
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 20, 50, 100, 200, 300, 600, 1000]
-NEG_GRAD_BATCH_SIZES = [10, 20, 50, 50, 50, 50, 100, 100]
-NUMBER_OF_EPOCHS = 25
+RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000]
+NEG_GRAD_BATCH_SIZES = [10, 25, 50, 100, 100, 120, 125]
+NUMBER_OF_EPOCHS = 15
 NEG_GRAD_LEARNING_RAGE = 5*1e-5
-NEG_GRAD_PLUS = True # add reaminig data to gradient calculation
+
+# add reaminig data to gradient calculation (NegGrad+)
+NEG_GRAD_PLUS = True if len(sys.argv) > 1 and sys.argv[1] == "plus" else False
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
@@ -38,7 +40,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATC
 
         ## create a new wandb run
         wandb.init(
-            project="thesis_unlearning",
+            project="Unlearning Experiments",
             job_type="baseline",
             name=f"{"Neg_grad_plus" if NEG_GRAD_PLUS else "neg_grad"}-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -75,7 +77,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATC
         
         model.train()
         
+        model.config_lr(NEG_GRAD_LEARNING_RAGE)
+        optimizer = model.configure_optimizers()
+        
         unlearning_stats = {}
+        
         # Unlearning process
         for unlearning_epoch in range(NUMBER_OF_EPOCHS):
             epoch_stats = {}
@@ -91,13 +97,6 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATC
                 x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
                 x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
                 
-                # define optimizer
-                optimizer = model.configure_optimizers()
-
-                # set the learning rate
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = NEG_GRAD_LEARNING_RAGE
-
                 # Zero the parameter gradients
                 optimizer.zero_grad()
                 
@@ -140,7 +139,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, NEG_GRAD_BATC
             epoch_stats["unlearning_epoch_time"] = end_epoch_time - start_epoch_time
             
             #wand logging
-            wandb.log(epoch_stats | {"unlearning_loss": total_epoch_loss})
+            wandb.log(epoch_stats | {"loss": total_epoch_loss})
             
             # save unlearning model for this epoch
             torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/neg_grad_{'plus' if NEG_GRAD_PLUS else ''}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
