@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 
 class HexagonCheckInUserDataset(Dataset):
-    def __init__(self, csv_file, trajectory_col_name="higher_order_trajectory", user_id_col_name='user_id', cell_to_id=None, split_ratio=0.8, random_state=42):
+    def __init__(self, csv_file, trajectory_col_name="higher_order_trajectory", user_id_col_name='user_id', cell_to_id=None, split_ratio=0.8, random_state=42, mininum_trajectory_count=10):
         """
         This class is a PyTorch Dataset class that is used to load the dataset of trajectories and user IDs.
 
@@ -19,6 +19,9 @@ class HexagonCheckInUserDataset(Dataset):
             random_state (int, optional): The random state for splitting the dataset. Defaults to 42.
         """
         self.data = pd.read_csv(csv_file)
+        
+        # filter out the rows that has low count in trajectories
+        self.data = self.data.groupby(user_id_col_name).filter(lambda x: len(x) >= mininum_trajectory_count)
 
         # Get all cell names
         traj_values = self.data[trajectory_col_name]
