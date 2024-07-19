@@ -12,14 +12,14 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import logging
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-MODEL_NAME = "GRU"
-DATASET_NAME = "HO_NYC_Checkins"
+MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
+DATASET_NAME = "HO_Rome_Res8"
 
 # MODEL PARAMETERS
 EMBEDDING_SIZE = 128

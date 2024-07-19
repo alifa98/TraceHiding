@@ -14,12 +14,13 @@ trap cleanup SIGINT
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate lit2
 
-python experiment_scripts/02_1_model_trainer.py LSTM &
-python experiment_scripts/02_1_model_trainer.py GRU &
-python experiment_scripts/04_1_random_sample_remaining_data_retrainer.py LSTM &
-python experiment_scripts/04_1_random_sample_remaining_data_retrainer.py GRU &
-python experiment_scripts/04_2_random_user_remaining_data_retrainer.py LSTM &
-python experiment_scripts/04_2_random_user_remaining_data_retrainer.py GRU &
+# Set CUDA_VISIBLE_DEVICES for each command
+CUDA_VISIBLE_DEVICES=3 python experiment_scripts/02_1_model_trainer.py LSTM &
+CUDA_VISIBLE_DEVICES=6 python experiment_scripts/02_1_model_trainer.py GRU &
+CUDA_VISIBLE_DEVICES=3 python experiment_scripts/04_1_random_sample_remaining_data_retrainer.py LSTM &
+CUDA_VISIBLE_DEVICES=6 python experiment_scripts/04_1_random_sample_remaining_data_retrainer.py GRU &
+CUDA_VISIBLE_DEVICES=6 python experiment_scripts/04_2_random_user_remaining_data_retrainer.py LSTM &
+CUDA_VISIBLE_DEVICES=3 python experiment_scripts/04_2_random_user_remaining_data_retrainer.py GRU &
 
 # Wait for all background processes to finish
 wait

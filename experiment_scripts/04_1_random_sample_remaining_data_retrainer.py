@@ -14,14 +14,14 @@ from pytorch_lightning.callbacks import EarlyStopping
 import json
 import torch
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-MODEL_NAME = "GRU"  # model name that we are retraining
-DATASET_NAME = "HO_NYC_Checkins"
+MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
+DATASET_NAME = "HO_Rome_Res8"
 RANDOM_SAMPLE_UNLEARNING_SIZES = [100, 200, 300, 600, 1000] # [10, 50, 100, 200, 300, 600, 1000]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
