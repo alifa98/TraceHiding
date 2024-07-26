@@ -1,7 +1,6 @@
 import os
 import sys
 
-from sklearn.model_selection import train_test_split
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utility.evaluationUtils import evaluate_mia_model, get_model_outputs, js_divergence, train_mia_model
@@ -15,7 +14,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from scipy.spatial.distance import euclidean
 import numpy as np
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # Helps with debugging CUDA errors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_float32_matmul_precision('high')
@@ -23,14 +22,14 @@ torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
-DATASET_NAME = "nyc_checkins"
-MODEL_NAME = "LSTM"
-BASELINE_METHOD = "retrained" # original, retrained, finetune, negrad, negradplus, badt, scrub
+DATASET_NAME = "HO_Porto_Res9"
+MODEL_NAME = "BERT"
+BASELINE_METHOD = "original" # original, retrained, finetune, negrad, negradplus, badt, scrub
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [600] #[10, 20, 50, 100, 200, 300, 600, 1000]
+RANDOM_SAMPLE_UNLEARNING_SIZES = [600]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
-METRIC_NAMES = ["MIA"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
+METRIC_NAMES = ["performance"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
 MIA_TYPE = "RF" # ["RF", "NN"]
 # ---------------------------------------------------
 
@@ -62,16 +61,16 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         
         baseline_model.eval()
         
-        baseline_output_unlearning, _ = get_model_outputs(baseline_model, unlearning_dloader, device)
+        baseline_output_unlearning, unlearnin_true_labels = get_model_outputs(baseline_model, unlearning_dloader, device)
         
         if "performance" in METRIC_NAMES:
             baseline_predictions_unlearning = baseline_output_unlearning.argmax(dim=1)
             metrics = {
                 'performance': {
-                    'accuracy': accuracy_score(baseline_predictions_unlearning.cpu(), baseline_predictions_unlearning.cpu()),
-                    'precision': precision_score(baseline_predictions_unlearning.cpu(), baseline_predictions_unlearning.cpu(), average='weighted'),
-                    'recall': recall_score(baseline_predictions_unlearning.cpu(), baseline_predictions_unlearning.cpu(), average='weighted'),
-                    'f1_score': f1_score(baseline_predictions_unlearning.cpu(), baseline_predictions_unlearning.cpu(), average='weighted')
+                    'accuracy': accuracy_score(unlearnin_true_labels.cpu(), baseline_predictions_unlearning.cpu()),
+                    'precision': precision_score(unlearnin_true_labels.cpu(), baseline_predictions_unlearning.cpu(), average='weighted'),
+                    'recall': recall_score(unlearnin_true_labels.cpu(), baseline_predictions_unlearning.cpu(), average='weighted'),
+                    'f1_score': f1_score(unlearnin_true_labels.cpu(), baseline_predictions_unlearning.cpu(), average='weighted')
                 }
             }
             print(f"Performance metrics for sample size {sample_size}, repetition {i}: {metrics}")
