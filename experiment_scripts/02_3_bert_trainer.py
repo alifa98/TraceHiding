@@ -17,13 +17,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = "BERT"
-DATASET_NAME = "HO_Rome_Res8"
+DATASET_NAME = "HO_GeoLife_Res8"
 
-HIDDEN_SIZE = 300
+HIDDEN_SIZE = 256
 NUM_HIDDEN_LAYERS = 3
-NUM_ATTENTION_HEADS = 3
-INTERMEDIATE_SIZE = 256
-BATCH_SIZE = 1000
+NUM_ATTENTION_HEADS = 4
+INTERMEDIATE_SIZE = 128
+BATCH_SIZE = 100
 EPOCHS = 500
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -136,6 +136,7 @@ model_params = {
     "num_attention_heads": NUM_ATTENTION_HEADS,
     "intermediate_size": INTERMEDIATE_SIZE,
     "max_position_embeddings": max_sequence_length,
+    "batch_size": BATCH_SIZE,
 }
 
 json.dump(model_params, open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "w"))
