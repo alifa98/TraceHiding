@@ -11,12 +11,14 @@ from utility.CheckInDataset import HexagonCheckInUserDataset
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
-DATASET_NAME = "HO_NYC_Checkins"
-TRAJECTORY_COLUMN = 'poi'
-USER_COLUMN_NAME = 'user'
+DATASET_NAME = "HO_Porto_Res9"
+TRAJECTORY_COLUMN = 'higher_order_trajectory'
+USER_COLUMN_NAME = 'TAXI_ID'
 SPLIT_RATIO = 0.8
-DATASET_CSV_RAW_PATH = "datasets/nyc_HO_full.csv"
+DATASET_CSV_RAW_PATH = "/local/data1/shared_data/higher_order_trajectory/porto/ho_porto_res9.csv"
 RANDOM_STATE = 77
+MIN_TRAJECTORY_LENGTH = 5
+MAXIMUM_TRAJECTORY_LENGTH = 50
 
 os.makedirs(f"experiments/{DATASET_NAME}/splits", exist_ok=True)
 
@@ -25,6 +27,8 @@ dataset = HexagonCheckInUserDataset(
     user_id_col_name=USER_COLUMN_NAME,
     trajectory_col_name=TRAJECTORY_COLUMN,
     split_ratio=SPLIT_RATIO,
+    min_trajectory_length=MIN_TRAJECTORY_LENGTH,
+    max_trajectory_length=MAXIMUM_TRAJECTORY_LENGTH,
     random_state=RANDOM_STATE)
 
 stats = {
