@@ -1,89 +1,96 @@
-# This file train a GRU model to predict the user of the sequence of trajectory data points
-# basically, this file train the smart teacher or the orginal model
-# model parameters will be saved next to the model in josn format
-
 import logging
-from torch.utils.data import DataLoader
-import pytorch_lightning as pl
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from utility.functions import custom_collate_fn
-from models.HoGRU import LitHigherOrderGRU
+
 from transformers import Trainer, TrainingArguments, EarlyStoppingCallback
 from transformers import BertConfig, BertForSequenceClassification
-from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import Dataset
 import json
 import torch
 
-
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ["WANDB_MODE"] = "disabled"
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
+# ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-MODEL_NAME = "BERT"  # model name that we are training in this file
-# train on
-DATASET_NAME = "nyc_checkins"
+MODEL_NAME = "BERT"
+DATASET_NAME = "HO_Rome_Res8"
 
-# MODEL PARAMETERS
-HIDDEN_SIZE = 768
-NUM_HIDDEN_LAYERS = 4
-NUM_ATTENTION_HEADS = 4
-INTERMEDIATE_SIZE = 300
-MAX_POSITION_EMBEDDINGS = 512
-BATCH_SIZE = 100
-EPOCHS = 10
+HIDDEN_SIZE = 300
+NUM_HIDDEN_LAYERS = 3
+NUM_ATTENTION_HEADS = 3
+INTERMEDIATE_SIZE = 256
+BATCH_SIZE = 1000
+EPOCHS = 500
 
+# ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
-os.makedirs(
-    f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
+os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
 
-train_dataset = torch.load(
-    f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-test_dataset = torch.load(
-    f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
-cell_to_id = torch.load(
-    f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt")
-stats = json.load(
-    open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
+train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
+test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+cell_to_id = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt")
+stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
+# Check if a GPU is available and use it
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # LOAD DATASET
 class HexagonDatasetForBert(Dataset):
-    def __init__(self, sequences, labels):
+    def __init__(self, sequences, lables):
         self.sequences = sequences
-        self.labels = labels
+        self.labels = lables
+        self.max_length = 0
 
     def __len__(self):
         return len(self.sequences)
 
     def __getitem__(self, idx):
         return {
-            'input_ids': torch.tensor(self.sequences[idx], dtype=torch.long),
+            'input_ids': torch.tensor(self.padded_sequences[idx], dtype=torch.long),
+            'attention_mask': torch.tensor([1 if token != 0 else 0 for token in self.padded_sequences[idx]], dtype=torch.long),
             'labels': torch.tensor(self.labels[idx], dtype=torch.long)
         }
 
+    def pad_a_sequence(self, sequence):
+        if len(sequence) < self.max_length:
+            return sequence + [0] * (self.max_length - len(sequence))
+        return sequence[:self.max_length]
+    
+    def pad_sequences(self):
+        self.padded_sequences = [self.pad_a_sequence(seq) for seq in self.sequences]
 
-train_dataset = HexagonDatasetForBert(train_dataset[0], train_dataset[1])
-test_dataset = HexagonDatasetForBert(test_dataset[0], test_dataset[1])
 
+sequences, labels = zip(*train_dataset)
+train_dataset = HexagonDatasetForBert(sequences, labels)
+sequences, labels = zip(*test_dataset)
+test_dataset = HexagonDatasetForBert(sequences, labels)
+
+max_sequence_length = max(max(len(seq) for seq in test_dataset.sequences), max(len(seq) for seq in train_dataset.sequences))
+train_dataset.max_length = max_sequence_length
+test_dataset.max_length = max_sequence_length
+
+train_dataset.pad_sequences()
+test_dataset.pad_sequences()
 
 # model
 config = BertConfig(
-    vocab_size=int(stats["vocab_size"]),
+    vocab_size=stats["vocab_size"]+2,
     hidden_size=HIDDEN_SIZE,
     num_hidden_layers=NUM_HIDDEN_LAYERS,
     num_attention_heads=NUM_ATTENTION_HEADS,
     intermediate_size=INTERMEDIATE_SIZE,
-    max_position_embeddings=MAX_POSITION_EMBEDDINGS,
+    max_position_embeddings=max_sequence_length,
     num_labels=int(stats["users_size"]),
 )
 
 model = BertForSequenceClassification(config)
 
+# Move the model to the specified device
+model.to(device)
 
 CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoints"
 
@@ -98,7 +105,7 @@ training_args = TrainingArguments(
     num_train_epochs=EPOCHS,
     weight_decay=0.01,
     load_best_model_at_end=True,
-    metric_for_best_model="eval_loss",
+    metric_for_best_model="eval_loss"
 )
 
 # Define the trainer
@@ -110,33 +117,27 @@ trainer = Trainer(
     callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
 )
 
-# save initial model
-torch.save(
-    model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt")
-
+# Save initial model
+torch.save(model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt")
 
 # Train the model
 trainer.train()
 logging.info("Training Done!")
 
-
 logging.info("Saving model ...")
 
-# save the model
-torch.save(
-    model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt")
+# Save the model
+torch.save(model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt")
 
-
-# model parameters
+# Model parameters
 model_params = {
     "hidden_size": HIDDEN_SIZE,
     "num_hidden_layers": NUM_HIDDEN_LAYERS,
     "num_attention_heads": NUM_ATTENTION_HEADS,
     "intermediate_size": INTERMEDIATE_SIZE,
-    "max_position_embeddings": MAX_POSITION_EMBEDDINGS,
+    "max_position_embeddings": max_sequence_length,
 }
 
-json.dump(model_params, open(
-    f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "w"))
+json.dump(model_params, open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "w"))
 
 logging.info("Training completed")
