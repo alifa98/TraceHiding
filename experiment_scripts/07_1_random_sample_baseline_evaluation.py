@@ -13,6 +13,8 @@ import torch
 from scipy.spatial.distance import euclidean
 import numpy as np
 from torchmetrics import Accuracy, Precision, Recall, F1Score
+from sklearn.base import accuracy_score
+
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # Helps with debugging CUDA errors
@@ -134,7 +136,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             mia_train_labels = torch.cat((torch.zeros(len(output_remaining)), torch.ones(len(output_test))), dim=0).to(device)
             
             mia_test_data = output_unlearning.to(device)
-            mia_test_labels = torch.ones(len(output_unlearning)).to(device)
+            mia_test_labels = torch.ones(len(output_unlearning)).to(device) # we assume that the unlearning data should be classified as test (not training) data
             
             if MIA_TYPE == "NN":
                 mia_train_data = torch.softmax(mia_train_data, dim=1)
