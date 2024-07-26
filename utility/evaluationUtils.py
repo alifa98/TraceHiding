@@ -3,6 +3,8 @@ import torch
 from scipy.stats import entropy
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
+from transformers.modeling_outputs import SequenceClassifierOutput
+from transformers import BertForSequenceClassification
 
 def get_class_weights(labels):
     class_counts = torch.bincount(labels.int())
@@ -17,8 +19,26 @@ def get_model_outputs(model, dataloader, device):
         for batch in dataloader:
             inputs, labels = batch
             inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)
-            model_outputs.append(outputs)
+            
+            # get the model outputs
+            if isinstance(model, BertForSequenceClassification):
+                inputs = {
+                    'input_ids': inputs,
+                    'attention_mask': (inputs != 0).long()
+                }
+                outputs = model(inputs['input_ids'],inputs['attention_mask'])
+            else:
+                raise ValueError("Model not supported")
+            
+            
+            #now get the logits and append them to the list
+            if isinstance(outputs, torch.Tensor):
+                model_outputs.append(outputs)
+            elif isinstance(outputs, SequenceClassifierOutput):
+                # for BERT models
+                model_outputs.append(outputs.logits)
+                
+            
             true_labels.append(labels)
     return torch.cat(model_outputs), torch.cat(true_labels)
 
