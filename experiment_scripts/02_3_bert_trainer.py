@@ -10,21 +10,21 @@ import json
 import torch
 
 os.environ["WANDB_MODE"] = "disabled"
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = "BERT"
-DATASET_NAME = "HO_GeoLife_Res8"
+DATASET_NAME = "HO_Porto_Res8"
 
 HIDDEN_SIZE = 256
 NUM_HIDDEN_LAYERS = 3
 NUM_ATTENTION_HEADS = 4
 INTERMEDIATE_SIZE = 128
 BATCH_SIZE = 100
-EPOCHS = 500
+EPOCHS = 300
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 

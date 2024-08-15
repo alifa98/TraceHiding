@@ -34,6 +34,7 @@ class LitHigherOrderLSTM(pl.LightningModule):
         self.train()
         x, y = train_batch
         y_hat = self(x)
+        # TODO: maybe we should use focal loss if we have a lot of imbalance in the dataset
         loss = F.cross_entropy(y_hat, y)
         self.log('train_loss', loss, prog_bar=True)
         return loss
