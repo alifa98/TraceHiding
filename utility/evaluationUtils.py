@@ -27,6 +27,8 @@ def get_model_outputs(model, dataloader, device):
                     'attention_mask': (inputs != 0).long()
                 }
                 outputs = model(inputs['input_ids'],inputs['attention_mask'])
+            elif isinstance(model, torch.nn.Module):
+                outputs = model(inputs)
             else:
                 raise ValueError("Model not supported")
             
