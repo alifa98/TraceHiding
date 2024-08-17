@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-DATASET_NAME = "HO_Rome_Res8"
+DATASET_NAME = "HO_Porto_Res8"
 
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
@@ -21,9 +21,14 @@ def analyze_and_visualize(dataset, dataset_name="Dataset"):
    vectorizer = TfidfVectorizer()
    X = vectorizer.fit_transform(sequences_str)
 
-   n_clusters = 5
-   kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
-   clusters = kmeans.fit_predict(X)
+   ## Color by K-Means Clustering
+   # n_clusters = 5
+   # kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
+   # clusters = kmeans.fit_predict(X)
+   
+   ## Color by labels
+   labels = [label for _, label in dataset]
+   clusters = labels
 
    pca = PCA(n_components=2)
    X_pca = pca.fit_transform(X.toarray())
