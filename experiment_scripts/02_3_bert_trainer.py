@@ -10,20 +10,22 @@ import json
 import torch
 
 os.environ["WANDB_MODE"] = "disabled"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = "BERT"
+# DATASET_NAME = "HO_Rome_Res8"
 DATASET_NAME = "HO_Porto_Res8"
+# DATASET_NAME = "HO_Geolife_Res8"
 
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 120
 NUM_HIDDEN_LAYERS = 3
 NUM_ATTENTION_HEADS = 4
 INTERMEDIATE_SIZE = 128
-BATCH_SIZE = 100
+BATCH_SIZE = 20
 EPOCHS = 300
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -97,15 +99,17 @@ CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoi
 # Define training arguments
 training_args = TrainingArguments(
     output_dir=CHECKPOINT_DIR,
+    run_name=f"{MODEL_NAME}_{DATASET_NAME}",
     eval_strategy="epoch",  # Use eval_strategy instead of evaluation_strategy
     save_strategy="epoch",  # Ensure save_strategy matches eval_strategy
-    learning_rate=2e-5,
+    learning_rate=1e-5,
     per_device_train_batch_size=BATCH_SIZE,
     per_device_eval_batch_size=BATCH_SIZE,
     num_train_epochs=EPOCHS,
-    weight_decay=0.01,
+    weight_decay=0.02,
     load_best_model_at_end=True,
-    metric_for_best_model="eval_loss"
+    metric_for_best_model="eval_loss",
+    report_to=None,
 )
 
 # Define the trainer
@@ -114,7 +118,7 @@ trainer = Trainer(
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=test_dataset,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=20)]
 )
 
 # Save initial model

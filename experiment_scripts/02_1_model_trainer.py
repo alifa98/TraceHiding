@@ -12,7 +12,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import logging
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -20,15 +20,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
 DATASET_NAME = "HO_Rome_Res8"
+# DATASET_NAME = "HO_Porto_Res8"
+# DATASET_NAME = "HO_Geolife_Res8"
 
 # MODEL PARAMETERS
-EMBEDDING_SIZE = 600
-HIDDEN_SIZE = 300
+EMBEDDING_SIZE = 100
+HIDDEN_SIZE = 200
 NUMBER_OF_LAYERS = 1
-DROPOUT = 0.2
-BATCH_SIZE = 20
+DROPOUT = 0.2912
+BATCH_SIZE = 22
 MAX_EPOCHS = 300
-
+# {embedding_size': 231, 'hidden_size': 447, 'number_of_layers': 3, 'dropout': 0.29125920978558156, 'batch_size': 22} best params for LSTM on HO_Rome_Res8-v2
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
@@ -52,15 +54,25 @@ else:
 
 # Configure the EarlyStopping callback
 early_stop_callback = EarlyStopping(
-    monitor='val_accuracy',  # Metric to monitor
+    monitor='val_loss',  # Metric to monitor
     min_delta=0.00,  # Minimum change to qualify as an improvement
-    patience=7,  # Number of epochs with no improvement after which training will be stopped
+    patience=30,  # Number of epochs with no improvement after which training will be stopped
     verbose=True,
-    mode='max'  # Because we want to minimize validation loss
+    mode='min'  # Because we want to minimize validation loss
 )
 
 CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoints"
-trainer = pl.Trainer(accelerator="gpu", devices=[0], max_epochs=MAX_EPOCHS, enable_progress_bar=True, enable_checkpointing=True, default_root_dir=CHECKPOINT_DIR, callbacks=[early_stop_callback])
+trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=[0],
+        max_epochs=MAX_EPOCHS,
+        enable_progress_bar=True,
+        enable_checkpointing=True,
+        default_root_dir=CHECKPOINT_DIR,
+        callbacks=[
+            early_stop_callback
+       ]
+)
 
 # save initial model
 torch.save(model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt")

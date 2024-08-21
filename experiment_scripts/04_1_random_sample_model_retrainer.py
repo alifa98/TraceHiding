@@ -14,16 +14,18 @@ from pytorch_lightning.callbacks import EarlyStopping
 import json
 import torch
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
-DATASET_NAME = "HO_Rome_Res8"
-RANDOM_SAMPLE_UNLEARNING_SIZES = [100, 200, 300, 600, 1000] # [10, 50, 100, 200, 300, 600, 1000]
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
+# DATASET_NAME = "HO_Rome_Res8"
+# DATASET_NAME = "HO_Porto_Res8"
+DATASET_NAME = "HO_Geolife_Res8"
+RANDOM_SAMPLE_UNLEARNING_SIZES =[50] # Rome:135, Porto: 45700, Geolife: 50
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -35,7 +37,7 @@ HIDDEN_SIZE = model_params["hidden_size"]
 NUMBER_OF_LAYERS = model_params["number_of_layers"]
 DROPOUT = model_params["dropout"]
 BATCH_SIZE = model_params["batch_size"]
-MAX_EPOCHS = 100
+MAX_EPOCHS = 300
 
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
@@ -63,15 +65,25 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         early_stop_callback = EarlyStopping(
             monitor='val_loss',  # Metric to monitor
             min_delta=0.00,  # Minimum change to qualify as an improvement
-            patience=3,  # Number of epochs with no improvement after which training will be stopped
+            patience=30,  # Number of epochs with no improvement after which training will be stopped
             verbose=True,
             mode='min'  # Because we want to minimize validation loss
         )
-                
+
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining", exist_ok=True)
         
         CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/checkpoints/"
-        trainer = pl.Trainer(accelerator="gpu", devices=[0], max_epochs=MAX_EPOCHS, enable_progress_bar=True, enable_checkpointing=True, default_root_dir=CHECKPOINT_DIR, callbacks=[early_stop_callback])
+        trainer = pl.Trainer(
+            accelerator="gpu",
+            devices=[0],
+            max_epochs=MAX_EPOCHS,
+            enable_progress_bar=True,
+            enable_checkpointing=True,
+            default_root_dir=CHECKPOINT_DIR,
+            callbacks=[
+                early_stop_callback
+                ]
+            )
 
         # train the model
         logging.info(f'Training the model for the remaining data, unlearning sample size: {sample_size}, repetition: {i}')
