@@ -15,7 +15,7 @@ import json
 import torch
 
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -23,8 +23,15 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
-DATASET_NAME = "HO_Rome_Res8"
-UNLEANING_USERS = [244, 87, 153, 227, 123] # created folders by random sampler for users
+
+# DATASET_NAME = "HO_Rome_Res8"
+# UNLEANING_USERS = [45, 47] # rome
+
+DATASET_NAME = "HO_Porto_Res8"
+UNLEANING_USERS = [227, 385] # porto
+
+# DATASET_NAME = "HO_Geolife_Res8"
+# UNLEANING_USERS = [27, 28] # geolife
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -36,7 +43,7 @@ HIDDEN_SIZE = model_params["hidden_size"]
 NUMBER_OF_LAYERS = model_params["number_of_layers"]
 DROPOUT = model_params["dropout"]
 BATCH_SIZE = model_params["batch_size"]
-MAX_EPOCHS = 100
+MAX_EPOCHS = 300
 
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
@@ -63,7 +70,7 @@ for user_id in UNLEANING_USERS:
     early_stop_callback = EarlyStopping(
         monitor='val_loss',  # Metric to monitor
         min_delta=0.00,  # Minimum change to qualify as an improvement
-        patience=3,  # Number of epochs with no improvement after which training will be stopped
+        patience=30,  # Number of epochs with no improvement after which training will be stopped
         verbose=True,
         mode='min'  # Because we want to minimize validation loss
     )
