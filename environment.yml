@@ -1,26 +1,32 @@
-name: unlearn
+# make sure you have the right CUDA veriosn installed
+# you can check the CUDA version by running `nvcc --version`
+# use the following command to add the right Cuda to the environment:
+# export LD_LIBRARY_PATH=/usr/local/cuda-11.3/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH
+# find the path by:
+# find /usr/ -name 'libcublas.so.*'  # Path to libraries
+name: unlearn3
 channels:
   - defaults
 dependencies:
-  - _libgcc_mutex=0.1
-  - _openmp_mutex=5.1
-  - ca-certificates=2023.05.30
-  - libedit=3.1.20221030
-  - libffi=3.2.1
-  - libgcc-ng=11.2.0
-  - libgomp=11.2.0
-  - libstdcxx-ng=11.2.0
-  - ncurses=6.4
-  - openssl=1.1.1u
-  - pip=23.1.2
-  - python=3.8.0
-  - readline=7.0
-  - setuptools=67.8.0
-  - sqlite=3.33.0
-  - tk=8.6.12
-  - wheel=0.38.4
-  - xz=5.4.2
-  - zlib=1.2.13
+  - _libgcc_mutex
+  - _openmp_mutex
+  - ca-certificates
+  - libedit
+  - libffi
+  - libgcc-ng
+  - libgomp
+  - libstdcxx-ng
+  - ncurses
+  - openssl
+  - pip
+  - python=3.12.0
+  - readline
+  - setuptools
+  - sqlite
+  - tk
+  - wheel
+  - xz
+  - zlib
   - pip:
       - absl-py==1.4.0
       - accelerate==0.31.0
