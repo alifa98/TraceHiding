@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utility.functions import custom_collate_fn
+from utility.ArguemntParser import get_args
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -14,23 +15,23 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-DATASET_NAME = "HO_NYC_Checkins"
-MODEL_NAME = "LSTM"
-
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000]
-FINETUNING_BATCH_SIZES = [10, 25, 50, 100, 100, 120, 125]
-PORTION_OF_FINE_TUNING_DATA = 0.5
+args = get_args()
+MODEL_NAME = args.model
+DATASET_NAME = args.dataset
+RANDOM_SAMPLE_UNLEARNING_SIZES =[args.sampleSize] # Rome:135, Porto: 45700, Geolife: 50
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
+FINETUNING_BATCH_SIZES = [args.batchSize]
+PORTION_OF_FINE_TUNING_DATA = 0.3
 FINE_TUNING_EPOCHS = 15
 FINE_TUNING_LEARNING_RATE = 5*1e-5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -39,7 +40,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
 
         ## create a new wandb run
         wandb.init(
-            project="Unlearning Experiments",
+            project="Final Unlearning Experiments",
             job_type="baseline",
             name=f"finetune-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -58,11 +59,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
         # results folder
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/finetune/", exist_ok=True)
 
-        remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
-        unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
+        remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
+        unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
         
-        train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-        test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+        train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+        test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 
         # select the remaining data
         remaining_dataset = Subset(train_data, remaining_indices)
@@ -73,9 +74,9 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, FINETUNING_BA
         
         remaining_dloader = DataLoader(remaining_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
         unlearning_dloader = DataLoader(unlearning_dataset, batch_size=len(unlearning_dataset), collate_fn=custom_collate_fn, num_workers=24)
-        test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
+        test_dloader = DataLoader(test_data, batch_size=len(test_data)//10, collate_fn=custom_collate_fn, num_workers=24)
 
-        model = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
+        model = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
         
         model.train()
         

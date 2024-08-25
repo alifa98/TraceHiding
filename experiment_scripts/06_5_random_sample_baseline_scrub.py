@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+from utility.ArguemntParser import get_args
 from utility.functions import custom_collate_fn
 from torch.nn import functional as F
 from torch.utils.data import Subset
@@ -13,17 +14,18 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-DATASET_NAME = "HO_NYC_Checkins"
-MODEL_NAME = "LSTM"
-
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000]
-UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [10, 25, 50, 100, 100, 120, 125]
+args = get_args()
+MODEL_NAME = args.model
+DATASET_NAME = args.dataset
+RANDOM_SAMPLE_UNLEARNING_SIZES =[args.sampleSize] # Rome:135, Porto: 45700, Geolife: 50
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
+UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [args.batchSize]
 LEARNING_RATE = 5e-5
 UNLEARNING_EPOCHS = 15
 
@@ -32,7 +34,6 @@ ALPHA = 0.9 # the cofficient for the forgetting loss term (student-teacher outpu
 GAMMA = 0.1 # the cofficient for the cross-entropy loss term (student-remaining data)
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -40,7 +41,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
         wandb.init(
-            project="Unlearning Experiments",
+            project="Final Unlearning Experiments",
             job_type="baseline",
             name=f"scrub-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -60,11 +61,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         # results folder
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/scrub/", exist_ok=True)
 
-        unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
-        remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
+        unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
+        remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
-        train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-        test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+        train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+        test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 
         # creating training, unlearning and testing data loaders
         unlearning_dataset = Subset(train_data, unlearning_indices)
@@ -75,8 +76,8 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
 
         # Load teacher and student models
-        smart_teacher = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
-        student = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
+        smart_teacher = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
+        student = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
 
         smart_teacher.eval()
         student.train()

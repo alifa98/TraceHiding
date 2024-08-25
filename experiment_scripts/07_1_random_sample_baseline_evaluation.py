@@ -13,7 +13,7 @@ import torch
 from scipy.spatial.distance import euclidean
 import numpy as np
 from torchmetrics import Accuracy, Precision, Recall, F1Score
-from sklearn.base import accuracy_score
+from sklearn.metrics import accuracy_score
 
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'

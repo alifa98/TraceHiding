@@ -22,7 +22,7 @@ class EachBatchTester(Callback):
         logging.info(f"Starting the logging of each mini-batch test results in the path: {self.logging_file}")
         return super().on_train_start(trainer, pl_module)
     
-    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs: Tensor | Mapping[str, Any] | None, batch: Any, batch_idx: int) -> None:
+    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch: Any, batch_idx: int) -> None:
         self.batch_number += 1
         acc1, acc3, acc5, precision, recall, f1 = pl_module.test_model(self.dataloader)
         self.accuracies[self.batch_number] = {"accuracy1": acc1.item(), "accuracy3": acc3.item(), "accuracy5": acc5.item(), "precision": precision.item(), "recall": recall.item(), "f1": f1.item()}
