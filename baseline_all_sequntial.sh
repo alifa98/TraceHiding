@@ -20,12 +20,12 @@ python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --d
 python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Geolife_Res8 --sampleSize 50 --batchSize 10 --plus True
 
 
-python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model LSTM --dataset HO_Porto_Res8 --sampleSize 45700 --batchSize 50 --plus False
-python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model LSTM --dataset HO_Rome_Res8 --sampleSize 135 --batchSize 25 --plus False
-python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model LSTM --dataset HO_Geolife_Res8 --sampleSize 50 --batchSize 10 --plus False
-python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Porto_Res8 --sampleSize 45700 --batchSize 100 --plus False
-python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Rome_Res8 --sampleSize 135 --batchSize 25 --plus False
-python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Geolife_Res8 --sampleSize 50 --batchSize 10 --plus False
+python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model LSTM --dataset HO_Porto_Res8 --sampleSize 45700 --batchSize 50 
+python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model LSTM --dataset HO_Rome_Res8 --sampleSize 135 --batchSize 25 
+python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model LSTM --dataset HO_Geolife_Res8 --sampleSize 50 --batchSize 10 
+python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Porto_Res8 --sampleSize 45700 --batchSize 100 
+python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Rome_Res8 --sampleSize 135 --batchSize 25 
+python experiment_scripts/06_3_random_sample_baseline_neggrad.py --model GRU --dataset HO_Geolife_Res8 --sampleSize 50 --batchSize 10 
 
 
 python experiment_scripts/06_4_random_sample_baseline_badt.py --model LSTM --dataset HO_Porto_Res8 --sampleSize 45700 --batchSize 50
