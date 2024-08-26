@@ -1,6 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from utility.ArguemntParser import get_args
 from utility.functions import custom_collate_fn
 from utility.EntropyImportance import EntropyImportance
 from utility.ImportanceCalculator import ImportanceCalculator
@@ -14,19 +15,20 @@ import json
 import tqdm
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 # os.environ["WANDB_MODE"] = "disabled"
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
+args = get_args()
+MODEL_NAME = args.model
+DATASET_NAME = args.dataset
+IMPORTANCE_NAME = args.importance
 
-DATASET_NAME = "HO_NYC_Checkins"
-MODEL_NAME = "LSTM"
-IMPORTANCE_NAME = "entropy" if len(sys.argv) < 2 else sys.argv[1]
-
-RANDOM_SAMPLE_UNLEARNING_SIZES = [10, 50, 100, 200, 300, 600, 1000] #[10, 50, 100, 200, 300, 600, 1000]
-UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [10, 25, 50, 100, 100, 120, 125] #[10, 25, 50, 100, 100, 120, 125] # /2
+RANDOM_SAMPLE_UNLEARNING_SIZES =[args.sampleSize] # Rome:135, Porto: 45700, Geolife: 50
+UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [args.batchSize]
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
 
 MAX_UNLEARNING_EPOCHS = 15
 INITIAL_LEARNING_RATE = 1e-4
@@ -37,7 +39,6 @@ FORGETTING_INITIAL_POWER = 1.2 # gives tendency to forget loss in lamda calculat
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -46,7 +47,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         
         ## create a new wandb run
         wandb.init(
-            project="Unlearning Experiments",
+            project="Final Unlearning Experiments-testing",
             job_type="unlearning",
             name=f"unlearning-{DATASET_NAME}-{MODEL_NAME}-{IMPORTANCE_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -69,11 +70,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         # results folder
         os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}", exist_ok=True)
 
-        unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
-        remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
+        unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
+        remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
-        train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-        test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+        train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+        test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 
         # prepare importance calculator
         if IMPORTANCE_NAME == "entropy":
@@ -91,14 +92,14 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
 
         # Load teacher and student models
-        smart_teacher = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
-        student = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
+        smart_teacher = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
+        student = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
 
         # Perturb the student model
         # for param in student.parameters():
         #     param.data += 0.03 * torch.randn_like(param)
 
-        retrained_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt").to(device)
+        retrained_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
 
         smart_teacher.eval()
         student.train()
@@ -146,6 +147,10 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         optimizer = student.configure_optimizers()
 
         unlearning_stats = {}
+        
+        
+        test_accuracy = 0 # initial to do the unlearning phase
+        unlearning_accuracy = 100 # initial to do the unlearning phase
         
         # Unlearning process
         for unlearning_epoch in range(MAX_UNLEARNING_EPOCHS):
@@ -203,7 +208,8 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
                 
                 total_epoch_loss += loss.item()
                 
-                if unlearning_epoch < 2 * MAX_UNLEARNING_EPOCHS /3 :
+                # if unlearning_epoch < 2 * MAX_UNLEARNING_EPOCHS /3 :
+                if test_accuracy < unlearning_accuracy:
                     # Consider Forgetting with power
                     lamda_dynamic = loss_forget.item() / (loss_remember.item() + loss_forget.item() + (FORGETTING_INITIAL_POWER / (unlearning_epoch + 1)))
                 else:
@@ -225,12 +231,14 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["unlearning_student_precision"] = student_precision.item()
             epoch_stats["unlearning_student_recall"] = student_recall.item()
             epoch_stats["unlearning_student_f1"] = student_f1.item()
-            epoch_stats["unlearning_retrained_accuracy_1"] = retrained_accuracy_1.item()
-            epoch_stats["unlearning_retrained_accuracy_3"] = retrained_accuracy_3.item()
-            epoch_stats["unlearning_retrained_accuracy_5"] = retrained_accuracy_5.item()
-            epoch_stats["unlearning_retrained_precision"] = retrained_precision.item()
-            epoch_stats["unlearning_retrained_recall"] = retrained_recall.item()
-            epoch_stats["unlearning_retrained_f1"] = retrained_f1.item()
+            # epoch_stats["unlearning_retrained_accuracy_1"] = retrained_accuracy_1.item()
+            # epoch_stats["unlearning_retrained_accuracy_3"] = retrained_accuracy_3.item()
+            # epoch_stats["unlearning_retrained_accuracy_5"] = retrained_accuracy_5.item()
+            # epoch_stats["unlearning_retrained_precision"] = retrained_precision.item()
+            # epoch_stats["unlearning_retrained_recall"] = retrained_recall.item()
+            # epoch_stats["unlearning_retrained_f1"] = retrained_f1.item()
+            
+            unlearning_accuracy = student_accuracy_1.item()
            
             logging.info(f"Student Unlearning Accuracy@1: {student_accuracy_1}")
             logging.info(f"Retrained Unlearning Accuracy@1: {retrained_accuracy_1}")
@@ -243,12 +251,14 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["test_student_precision"] = student_precision.item()
             epoch_stats["test_student_recall"] = student_recall.item()
             epoch_stats["test_student_f1"] = student_f1.item()
-            epoch_stats["test_retrained_accuracy_1"] = retrained_accuracy_1.item()
-            epoch_stats["test_retrained_accuracy_3"] = retrained_accuracy_3.item()
-            epoch_stats["test_retrained_accuracy_5"] = retrained_accuracy_5.item()
-            epoch_stats["test_retrained_precision"] = retrained_precision.item()
-            epoch_stats["test_retrained_recall"] = retrained_recall.item()
-            epoch_stats["test_retrained_f1"] = retrained_f1.item()
+            # epoch_stats["test_retrained_accuracy_1"] = retrained_accuracy_1.item()
+            # epoch_stats["test_retrained_accuracy_3"] = retrained_accuracy_3.item()
+            # epoch_stats["test_retrained_accuracy_5"] = retrained_accuracy_5.item()
+            # epoch_stats["test_retrained_precision"] = retrained_precision.item()
+            # epoch_stats["test_retrained_recall"] = retrained_recall.item()
+            # epoch_stats["test_retrained_f1"] = retrained_f1.item()
+            
+            test_accuracy = student_accuracy_1.item()
             
             logging.info(f"Student Test Accuracy@1: {student_accuracy_1}")
             logging.info(f"Retrained Test Accuracy@1: {retrained_accuracy_1}")
@@ -256,7 +266,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
             
             # WandB logging
-            wandb.log(epoch_stats | {"loss": total_epoch_loss})
+            wandb.log(epoch_stats | {"loss": total_epoch_loss} | {"lamda_dynamic": lamda_dynamic})
             
             # Save unlearning model for this epoch
             torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
