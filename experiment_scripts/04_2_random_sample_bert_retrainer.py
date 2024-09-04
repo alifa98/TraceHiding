@@ -38,8 +38,8 @@ MAXIMUM_POSITION_EMBEDDING = model_params["max_position_embeddings"]
 BATCH_SIZE = model_params["batch_size"]
 EPOCHS = 300
 
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
+train_dataset_og = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset_og = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
@@ -47,7 +47,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
         # LOAD DATASET
-        reamining_dataset = Subset(train_dataset, remaining_indexes)
+        reamining_dataset = Subset(train_dataset_og, remaining_indexes)
 
         # Check if a GPU is available and use it
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -80,7 +80,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
 
         sequences, labels = zip(*reamining_dataset)
         train_dataset = HexagonDatasetForBert(sequences, labels)
-        sequences, labels = zip(*test_dataset)
+        sequences, labels = zip(*test_dataset_og)
         test_dataset = HexagonDatasetForBert(sequences, labels)
 
         max_sequence_length = max(max(len(seq) for seq in test_dataset.sequences), max(len(seq) for seq in train_dataset.sequences))
