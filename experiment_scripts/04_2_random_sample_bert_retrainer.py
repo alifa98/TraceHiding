@@ -38,13 +38,13 @@ MAXIMUM_POSITION_EMBEDDING = model_params["max_position_embeddings"]
 BATCH_SIZE = model_params["batch_size"]
 EPOCHS = 300
 
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
-        remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
+        remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
         # LOAD DATASET
         reamining_dataset = Subset(train_dataset, remaining_indexes)
