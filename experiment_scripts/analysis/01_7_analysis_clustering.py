@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-DATASET_NAME = "HO_Porto_Res8"
+DATASET_NAME = "Ho_Foursquare_NYC"
 
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
@@ -32,7 +32,7 @@ def analyze_and_visualize(dataset, dataset_name="Dataset"):
 
    pca = PCA(n_components=2)
    X_pca = pca.fit_transform(X.toarray())
-
+   
    plt.figure(figsize=(10, 6))
    plt.scatter(X_pca[:, 0], X_pca[:, 1], c=clusters, cmap='viridis', s=50, alpha=0.7)
    plt.title(f'KMeans Clustering of Sequences in {dataset_name}')
@@ -42,6 +42,19 @@ def analyze_and_visualize(dataset, dataset_name="Dataset"):
    
    # Save the plot
    plt.savefig(f"analysis/{DATASET_NAME}/plots/{dataset_name}_clustering.png")
+   
+   
+   # tsne = TSNE(n_components=2)
+   # X_tsne = tsne.fit_transform(X.toarray())
+   # plt.figure(figsize=(10, 6))
+   # plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=clusters, cmap='viridis', s=50, alpha=0.7)
+   # plt.title(f'TSNE Clustering of Sequences in {dataset_name}')
+   # plt.xlabel('TSNE Component 1')
+   # plt.ylabel('TSNE Component 2')
+   # plt.colorbar(label='Cluster')
+   
+   # plt.savefig(f"analysis/{DATASET_NAME}/plots/{dataset_name}_tsne_clustering.png")
+   
 
 
 analyze_and_visualize(train_dataset, "Train Dataset")

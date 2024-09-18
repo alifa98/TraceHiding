@@ -2,7 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import torch
 
-DATASET_NAME = "HO_Rome_Res8"
+DATASET_NAME = "Ho_Foursquare_NYC"
 
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
