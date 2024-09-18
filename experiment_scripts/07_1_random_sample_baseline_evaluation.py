@@ -120,7 +120,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         
         # load the retrained model for distance & divergence calculation
         if "activation_distance" in METRIC_NAMES or "JS_divergence" in METRIC_NAMES:
-            retrained_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt").to(device)
+            retrained_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
             retrained_model.eval()
             retrained_output_unlearning, _ = get_model_outputs(retrained_model, unlearning_dloader, device)
           
