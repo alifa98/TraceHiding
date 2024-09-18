@@ -81,7 +81,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         # prepare importance calculator
         if IMPORTANCE_NAME == "entropy":
             importance_calculator = EntropyImportance()
-        if IMPORTANCE_NAME == "coverage_diversity":
+        elif IMPORTANCE_NAME == "coverage_diversity":
             importance_calculator = CoverageDiversityImportance()
         else:
             importance_calculator = ImportanceCalculator()
