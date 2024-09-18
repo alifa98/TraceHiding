@@ -39,13 +39,13 @@ DROPOUT = model_params["dropout"]
 BATCH_SIZE = model_params["batch_size"]
 MAX_EPOCHS = 300
 
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
-        remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
+        remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
         # LOAD DATASET
         reamining_dataset = Subset(train_dataset, remaining_indexes)
@@ -65,7 +65,7 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         early_stop_callback = EarlyStopping(
             monitor='val_loss',  # Metric to monitor
             min_delta=0.00,  # Minimum change to qualify as an improvement
-            patience=30,  # Number of epochs with no improvement after which training will be stopped
+            patience=7,  # Number of epochs with no improvement after which training will be stopped
             verbose=True,
             mode='min'  # Because we want to minimize validation loss
         )
