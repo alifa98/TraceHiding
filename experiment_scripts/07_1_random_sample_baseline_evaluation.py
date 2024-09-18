@@ -15,8 +15,7 @@ import numpy as np
 from torchmetrics import Accuracy, Precision, Recall, F1Score
 from sklearn.metrics import accuracy_score
 
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # Helps with debugging CUDA errors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_float32_matmul_precision('high')
@@ -24,11 +23,15 @@ torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
-DATASET_NAME = "HO_Rome_Res8"
-MODEL_NAME = "BERT"
-BASELINE_METHOD = "original" # original, retrained, finetune, negrad, negradplus, badt, scrub
+#LOADING CONFIGURATIONS
+DATASET_NAME = "Ho_Foursquare_NYC"
+MODEL_NAME = "LSTM"
+BASELINE_METHOD = "bad-t" # original, retraining, finetune, negrad, negrad_plus, bad-t, scrub
+EPOCH_NUMBER_TO_EVALUATE = 14
+IMPORTANCE_OUR_METHOD = 'entropy'
+BATCH_SIZE = 20
 
-RANDOM_SAMPLE_UNLEARNING_SIZES = [600]
+RANDOM_SAMPLE_UNLEARNING_SIZES = [200]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 METRIC_NAMES = ["performance"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
@@ -37,15 +40,15 @@ MIA_TYPE = "RF" # ["RF", "NN"]
 
 
 # Load the dataset
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
+train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 dataset_stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 
 for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
-        unlearning_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
-        remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
+        unlearning_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
+        remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
         
         unlearning_dataset = Subset(train_dataset, unlearning_indexes)
         remaining_dataset = Subset(train_dataset, remaining_indexes)
@@ -54,18 +57,23 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         test_dloader = DataLoader(test_dataset, batch_size=len(test_dataset), collate_fn=custom_collate_fn, num_workers=24)
         
         if BASELINE_METHOD == "original":
-            baseline_model = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt").to(device)
-        elif BASELINE_METHOD == "retrained":
-            baseline_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retrained_{MODEL_NAME}_model.pt").to(device)
+            baseline_model_path = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt"
+        elif BASELINE_METHOD == "retraining":
+            baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt"
+        elif BASELINE_METHOD == "our_method":
+            baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_OUR_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUMBER_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
         else:
-            # path to the trained baseline model
-            # baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/baseline_{MODEL_NAME}_model.pt"
-            raise NotImplementedError("Baseline method not implemented yet")
+            baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUMBER_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
         
+        baseline_model = torch.load(baseline_model_path, weights_only=False).to(device)
         baseline_model.eval()
         
         output_unlearning, unlearnin_true_labels = get_model_outputs(baseline_model, unlearning_dloader, device)
         output_test, test_true_labels = get_model_outputs(baseline_model, test_dloader, device)
+        
+        # save path for evaluation results
+        save_path = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}"
+        os.makedirs(save_path, exist_ok=True)
         
         if "performance" in METRIC_NAMES:
             
@@ -103,8 +111,12 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                 'recall': recall(output_test.argmax(dim=1), test_true_labels).item(),
                 'f1_score': f1_score(output_test.argmax(dim=1), test_true_labels).item()
             }
-
+            
             print(f"Performance metrics for sample size {sample_size}, repetition {i}: {metrics}")
+            
+            with open(f"{save_path}/performance_metrics.json", "w") as f:
+                json.dump(metrics, f)
+            
         
         # load the retrained model for distance & divergence calculation
         if "activation_distance" in METRIC_NAMES or "JS_divergence" in METRIC_NAMES:
@@ -171,4 +183,5 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
                 mia_predictions = mia_model.predict(mia_test_data)
                 mia_accuracy = accuracy_score(mia_test_labels, mia_predictions)
                 
-                print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")    
+                print(f"MIA accuracy for sample size {sample_size}, repetition {i}: {mia_accuracy}")
+        
