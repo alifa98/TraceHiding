@@ -12,18 +12,18 @@ import json
 import torch
 
 os.environ["WANDB_MODE"] = "disabled"
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = "BERT"
-DATASET_NAME = "HO_Rome_Res8"
+DATASET_NAME = "Ho_Foursquare_NYC"
 # DATASET_NAME = "HO_Porto_Res8"
 # DATASET_NAME = "HO_Geolife_Res8"
-RANDOM_SAMPLE_UNLEARNING_SIZES =[135] # Rome:135, Porto: 45700, Geolife: 50
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
+RANDOM_SAMPLE_UNLEARNING_SIZES =[200] # Rome:135, Porto: 45700, Geolife: 50
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -43,7 +43,7 @@ test_dataset_og = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
-    for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
+    for i in range(1,REPETITIONS_OF_EACH_SAMPLE_SIZE):
         remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
         # LOAD DATASET
@@ -106,9 +106,11 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         # Move the model to the specified device
         model.to(device)
 
-        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining", exist_ok=True)
+        # results folder
+        results_folder = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining"
+        os.makedirs(results_folder, exist_ok=True)
         
-        CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/checkpoints/"
+        CHECKPOINT_DIR = f"{results_folder}/checkpoints/"
         
         # Define training arguments
         training_args = TrainingArguments(
@@ -132,14 +134,14 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=test_dataset,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=20)]
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=8)]
         )
 
 
         # train the model
         logging.info(f'Training the model for the remaining data, unlearning sample size: {sample_size}, repetition: {i}')
         trainer.train()
-
+        
         # save the model
-        torch.save(model, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt")
+        torch.save(model, f"{results_folder}/retrained_{MODEL_NAME}_model.pt")
         logging.info(f'Model is saved for the remaining data, unlearning sample size: {sample_size}, sample: {i}')
