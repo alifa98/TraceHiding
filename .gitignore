@@ -4,3 +4,5 @@ wandb
 *.pyc
 analysis/**
 experiments-bkb
+
+TULHOR/**
