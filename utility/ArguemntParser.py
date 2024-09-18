@@ -42,6 +42,14 @@ def get_args():
         nargs='?',  # Makes this argument optional
         default=False
     )
+    
+    parser.add_argument(
+        '--importance', 
+        type=str,
+        help="Specify whether to add reaminig data to gradient calculation (NegGrad+). Default is 'False'.",
+        nargs='?',  # Makes this argument optional
+        default='entropy'
+    )
 
     args = parser.parse_args()
     
