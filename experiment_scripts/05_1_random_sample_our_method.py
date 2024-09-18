@@ -3,8 +3,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.ArguemntParser import get_args
 from utility.functions import custom_collate_fn
-from utility.EntropyImportance import EntropyImportance
 from utility.ImportanceCalculator import ImportanceCalculator
+from utility.EntropyImportance import EntropyImportance
+from utility.CoverageDiversityImportance import CoverageDiversityImportance
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -80,6 +81,8 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         # prepare importance calculator
         if IMPORTANCE_NAME == "entropy":
             importance_calculator = EntropyImportance()
+        if IMPORTANCE_NAME == "coverage_diversity":
+            importance_calculator = CoverageDiversityImportance()
         else:
             importance_calculator = ImportanceCalculator()
         importance_calculator.prepare(train_data + test_data)
