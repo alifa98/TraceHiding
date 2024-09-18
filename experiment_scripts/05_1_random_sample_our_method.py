@@ -15,7 +15,7 @@ import json
 import tqdm
 import wandb
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 # os.environ["WANDB_MODE"] = "disabled"
@@ -28,14 +28,14 @@ IMPORTANCE_NAME = args.importance
 
 RANDOM_SAMPLE_UNLEARNING_SIZES =[args.sampleSize] # Rome:135, Porto: 45700, Geolife: 50
 UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [args.batchSize]
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 MAX_UNLEARNING_EPOCHS = 15
 INITIAL_LEARNING_RATE = 1e-4
 ALPHA = 0.9
-BETA = 10
+BETA = 1
 GAMMA = 0.1
-FORGETTING_INITIAL_POWER = 1.2 # gives tendency to forget loss in lamda calculation (it can be dynamic maybe)
+FORGETTING_INITIAL_POWER = 0 # gives tendency to forget loss in lamda calculation (it can be dynamic maybe)
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -47,7 +47,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         
         ## create a new wandb run
         wandb.init(
-            project="Final Unlearning Experiments-testing",
+            project="Thesis",
             job_type="unlearning",
             name=f"unlearning-{DATASET_NAME}-{MODEL_NAME}-{IMPORTANCE_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -68,8 +68,9 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         )
         
         # results folder
-        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}", exist_ok=True)
-
+        results_folder = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}"
+        os.makedirs(results_folder, exist_ok=True)
+        
         unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
         remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
@@ -269,11 +270,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             wandb.log(epoch_stats | {"loss": total_epoch_loss} | {"lamda_dynamic": lamda_dynamic})
             
             # Save unlearning model for this epoch
-            torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
+            torch.save(student, f"{results_folder}/unlearned_{MODEL_NAME}_epoch_{unlearning_epoch}_batch_{batch_size}.pt")
             
             unlearning_stats[unlearning_epoch] = epoch_stats
             
         wandb.finish()
         
-        json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/our_method/{IMPORTANCE_NAME}/unlearning_stats-batch_size_{batch_size}.json", "w"))
+        json.dump(unlearning_stats, open(f"{results_folder}/unlearning_stats-batch_size_{batch_size}.json", "w"))
         logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")

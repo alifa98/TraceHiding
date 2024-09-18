@@ -24,7 +24,7 @@ args = get_args()
 MODEL_NAME = args.model
 DATASET_NAME = args.dataset
 RANDOM_SAMPLE_UNLEARNING_SIZES =[args.sampleSize] # Rome:135, Porto: 45700, Geolife: 50
-REPETITIONS_OF_EACH_SAMPLE_SIZE = 2
+REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 UNLEARNING_BATCH_SIZE_FOR_EACH_SAMPLE_SIZE = [args.batchSize]
 LEARNING_RATE = 5e-5
 UNLEARNING_EPOCHS = 15
@@ -41,7 +41,7 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
         wandb.init(
-            project="Final Unlearning Experiments",
+            project="Thesis",
             job_type="baseline",
             name=f"scrub-{DATASET_NAME}-{MODEL_NAME}-sample_size_{sample_size}-repetition_{i}",
             config={
@@ -59,8 +59,9 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
         )
 
         # results folder
-        os.makedirs(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/scrub/", exist_ok=True)
-
+        results_folder = f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/scrub"
+        os.makedirs(results_folder, exist_ok=True)
+        
         unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
         remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
@@ -172,11 +173,11 @@ for sample_size, batch_size in zip(RANDOM_SAMPLE_UNLEARNING_SIZES, UNLEARNING_BA
             wandb.log(epoch_stats | {"loss": total_epoch_loss})
             
             # save unlearning model for this epoch
-            torch.save(student, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/scrub/unlearned_epoch{unlearning_epoch}_{MODEL_NAME}_model.pt")
+            torch.save(student, f"{results_folder}/unlearned_{MODEL_NAME}_epoch_{unlearning_epoch}_batch_{batch_size}.pt")
             
             unlearning_stats[unlearning_epoch] = epoch_stats
             
         wandb.finish()
         
-        json.dump(unlearning_stats, open(f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/scrub/unlearning_stats-batch_size_{batch_size}.json", "w"))
+        json.dump(unlearning_stats, open(f"{results_folder}/unlearning_stats-batch_size_{batch_size}.json", "w"))
         logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")

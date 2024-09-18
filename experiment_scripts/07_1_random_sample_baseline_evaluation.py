@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 #LOADING CONFIGURATIONS
 DATASET_NAME = "Ho_Foursquare_NYC"
 MODEL_NAME = "LSTM"
-BASELINE_METHOD = "bad-t" # original, retraining, finetune, negrad, negrad_plus, bad-t, scrub
+BASELINE_METHOD = "bad-t" # original, retraining, finetune, neg_grad, neg_grad_plus, bad-t, scrub
 EPOCH_NUMBER_TO_EVALUATE = 14
 IMPORTANCE_OUR_METHOD = 'entropy'
 BATCH_SIZE = 20
