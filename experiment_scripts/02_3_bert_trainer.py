@@ -8,9 +8,12 @@ from transformers import BertConfig, BertForSequenceClassification
 from torch.utils.data import Dataset
 import json
 import torch
+import wandb
 
 os.environ["WANDB_MODE"] = "disabled"
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+# wandb.init(mode="dryrun")
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -18,10 +21,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 MODEL_NAME = "BERT"
 # DATASET_NAME = "HO_Rome_Res8"
-DATASET_NAME = "HO_Porto_Res8"
+DATASET_NAME = "Ho_Foursquare_NYC"
 # DATASET_NAME = "HO_Geolife_Res8"
 
-HIDDEN_SIZE = 120
+HIDDEN_SIZE = 100
 NUM_HIDDEN_LAYERS = 3
 NUM_ATTENTION_HEADS = 4
 INTERMEDIATE_SIZE = 128
@@ -32,9 +35,9 @@ EPOCHS = 300
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
 
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
-cell_to_id = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt")
+train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
+cell_to_id = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 # Check if a GPU is available and use it
@@ -118,7 +121,7 @@ trainer = Trainer(
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=test_dataset,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=20)]
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=8)]
 )
 
 # Save initial model

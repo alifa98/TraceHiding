@@ -19,25 +19,25 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
 MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
-DATASET_NAME = "HO_Rome_Res8"
+DATASET_NAME = "Ho_Foursquare_NYC"
 # DATASET_NAME = "HO_Porto_Res8"
 # DATASET_NAME = "HO_Geolife_Res8"
 
 # MODEL PARAMETERS
 EMBEDDING_SIZE = 100
-HIDDEN_SIZE = 200
+HIDDEN_SIZE = 100
 NUMBER_OF_LAYERS = 1
-DROPOUT = 0.2912
-BATCH_SIZE = 22
+DROPOUT = 0.3
+BATCH_SIZE = 20
 MAX_EPOCHS = 300
 # {embedding_size': 231, 'hidden_size': 447, 'number_of_layers': 3, 'dropout': 0.29125920978558156, 'batch_size': 22} best params for LSTM on HO_Rome_Res8-v2
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
 
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt")
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt")
-cell_to_id = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt")
+train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
+cell_to_id = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 # LOAD DATASET
@@ -56,7 +56,7 @@ else:
 early_stop_callback = EarlyStopping(
     monitor='val_loss',  # Metric to monitor
     min_delta=0.00,  # Minimum change to qualify as an improvement
-    patience=30,  # Number of epochs with no improvement after which training will be stopped
+    patience=7,  # Number of epochs with no improvement after which training will be stopped
     verbose=True,
     mode='min'  # Because we want to minimize validation loss
 )
