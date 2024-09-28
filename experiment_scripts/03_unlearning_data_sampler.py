@@ -35,8 +35,8 @@ for sample_size in RANDOM_SAMPLE_UNLEARNING_SIZES:
         random_permutaion = torch.randperm(stats['train_size']).tolist()
         unlearning_indexes = random_permutaion[:sample_size]
         remaining_indexes = random_permutaion[sample_size:]
-        torch.save(unlearning_indexes, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
-        torch.save(remaining_indexes, f"experiments/{DATASET_NAME}/unlearning/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
+        torch.save(unlearning_indexes, f"experiments/{DATASET_NAME}/unlearning/random_sample/sample_size_{sample_size}/sample_{i}/data/unlearning.indexes.pt")
+        torch.save(remaining_indexes, f"experiments/{DATASET_NAME}/unlearning/random_sample/sample_size_{sample_size}/sample_{i}/data/remaining.indexes.pt")
         logging.info(f"Random sampling of size {sample_size} done for sample {i}")
 
 # SAMPLE USER INDEXES FOR UNLEARNING
