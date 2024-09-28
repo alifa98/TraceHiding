@@ -272,11 +272,11 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         wandb.log(epoch_stats | {"loss": total_epoch_loss} | {"lamda_dynamic": lamda_dynamic})
         
         # Save unlearning model for this epoch
-        torch.save(student, f"{results_folder}/unlearned_{MODEL_NAME}_epoch_{unlearning_epoch}_batch_{batch_size}.pt")
+        torch.save(student, f"{results_folder}/unlearned_{MODEL_NAME}_epoch_{unlearning_epoch}_batch_{BATCH_SIZE}.pt")
         
         unlearning_stats[unlearning_epoch] = epoch_stats
         
     wandb.finish()
     
-    json.dump(unlearning_stats, open(f"{results_folder}/unlearning_stats-batch_size_{batch_size}.json", "w"))
-    logging.info(f"Unlearning models for each epoch now are saved for sample size {sample_size}, no. {i}")
+    json.dump(unlearning_stats, open(f"{results_folder}/unlearning_stats-batch_size_{BATCH_SIZE}.json", "w"))
+    logging.info(f"Unlearning models for each epoch now are saved for sample size {SAMPLE_SIZE}, no. {i}")
