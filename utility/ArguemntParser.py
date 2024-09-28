@@ -16,7 +16,15 @@ def get_args():
         type=str, 
         help="Specify the name of the dataset to be used. Default is 'HO_Geolife_Res8'.",
         nargs='?',  # Makes this argument optional
-        default='HO_Geolife_Res8'
+        default='Ho_Foursquare_NYC'
+    )
+    
+    parser.add_argument(
+        '--scenario',
+        choices=['random', 'user'],
+        help="Specify the scenario for unlearning. Default is 'user'.",
+        nargs='?',  # Makes this argument optional
+        default='user'
     )
 
     parser.add_argument(
