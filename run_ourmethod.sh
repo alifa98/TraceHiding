@@ -4,5 +4,11 @@ export CUDA_VISIBLE_DEVICES=5
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate unlearnF
 
-python experiment_scripts/05_1_random_sample_our_method.py --model GRU --dataset Ho_Foursquare_NYC --sampleSize 200 --batchSize 20 --importance entropy
-python experiment_scripts/05_1_random_sample_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --sampleSize 200 --batchSize 20 --importance entropy
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 1 --batchSize 50  --importance entropy
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 5 --batchSize 50  --importance entropy
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 10 --batchSize 50  --importance entropy
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 20 --batchSize 50  --importance entropy
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 1 --batchSize 50  --importance coverage_diversity
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 5 --batchSize 50  --importance coverage_diversity
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 10 --batchSize 50  --importance coverage_diversity
+python experiment_scripts/05_1_our_method.py --model LSTM --dataset Ho_Foursquare_NYC --scenario user --sampleSize 20 --batchSize 50  --importance coverage_diversity
