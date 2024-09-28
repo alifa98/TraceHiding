@@ -37,6 +37,7 @@ FINE_TUNING_LEARNING_RATE = 5*1e-5
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
+    
     wandb.init(
         project="Thesis",
         job_type="baseline",
@@ -58,20 +59,18 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/finetune"
     os.makedirs(results_folder, exist_ok=True)
 
-    unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
     remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
 
     train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
     test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 
     remaining_dataset = Subset(train_data, remaining_indices)
-    unlearning_dataset = Subset(train_data, unlearning_indices)
 
     # select the random portion of the remaining data for fine-tuning
     remaining_dataset = Subset(remaining_dataset, torch.randperm(len(remaining_dataset))[:int(PORTION_OF_FINE_TUNING_DATA*len(remaining_dataset))])
     
     remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
-    test_dloader = DataLoader(test_data, batch_size=len(test_data)//10, collate_fn=custom_collate_fn, num_workers=24)
+    test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
 
     model = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
     
