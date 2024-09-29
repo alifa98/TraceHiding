@@ -19,8 +19,7 @@ import wandb
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-# os.environ["WANDB_MODE"] = "disabled"
-wandb.require('core')
+os.environ["WANDB_MODE"] = "offline" # then run wandb sync <path_to_your_wandb_run_directory> to sync the results
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 args = get_args()
