@@ -47,7 +47,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "method_name": "NegGrad+" if NEG_GRAD_PLUS else "NegGrad",
             "dataset": DATASET_NAME,
             "model": MODEL_NAME,
-            "scenario": "Sample Deletion",
+            "scenario": SCENARIO + " deletion",
             "sample_size": SAMPLE_SIZE,
             "batch_size": BATCH_SIZE,
             "repetition": i,
