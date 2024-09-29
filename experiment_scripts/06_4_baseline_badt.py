@@ -36,7 +36,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     
-    ## create a new wandb run
     wandb.init(
         project="Thesis",
         job_type="baseline",
