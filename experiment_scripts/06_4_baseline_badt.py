@@ -26,9 +26,10 @@ DATASET_NAME = args.dataset
 SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
+UNLEARNING_EPOCHS = args.epochs
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
+
 LEARNING_RATE = 5e-5
-UNLEARNING_EPOCHS = 15
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 

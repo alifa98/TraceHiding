@@ -27,9 +27,10 @@ DATASET_NAME = args.dataset
 SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
+FINE_TUNING_EPOCHS = args.epochs
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
+
 PORTION_OF_FINE_TUNING_DATA = 0.3
-FINE_TUNING_EPOCHS = 15
 FINE_TUNING_LEARNING_RATE = 5*1e-5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#

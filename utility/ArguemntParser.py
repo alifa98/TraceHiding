@@ -44,6 +44,14 @@ def get_args():
     )
     
     parser.add_argument(
+        '--epochs', 
+        type=int,
+        help="Specify the number of epochs for the process. Default is 15.",
+        nargs='?',  # Makes this argument optional
+        default=15
+    )
+    
+    parser.add_argument(
         '--plus', 
         type=bool,
         help="Specify whether to add reaminig data to gradient calculation (NegGrad+). Default is 'False'.",

@@ -26,12 +26,11 @@ DATASET_NAME = args.dataset
 SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
+NUMBER_OF_EPOCHS = args.epochs
+NEG_GRAD_PLUS = args.plus # add reaminig data to gradient calculation (NegGrad+)
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
-NUMBER_OF_EPOCHS = 15
-NEG_GRAD_LEARNING_RAGE = 5*1e-5
 
-# add reaminig data to gradient calculation (NegGrad+)
-NEG_GRAD_PLUS = args.plus
+NEG_GRAD_LEARNING_RATE = 5*1e-5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -51,7 +50,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "sample_size": SAMPLE_SIZE,
             "batch_size": BATCH_SIZE,
             "repetition": i,
-            "learning_rate": NEG_GRAD_LEARNING_RAGE,
+            "learning_rate": NEG_GRAD_LEARNING_RATE,
             "neg_grad_plus": NEG_GRAD_PLUS,
         }
     )
@@ -77,7 +76,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     
     model.train()
     
-    model.config_lr(NEG_GRAD_LEARNING_RAGE)
+    model.config_lr(NEG_GRAD_LEARNING_RATE)
     optimizer = model.configure_optimizers()
     
     unlearning_stats = {}
