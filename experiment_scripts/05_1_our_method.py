@@ -86,7 +86,6 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         importance_calculator = ImportanceCalculator()
     importance_calculator.prepare(train_data + test_data)
 
-    # creating training, unlearning and testing data loaders
     unlearning_dataset = Subset(train_data, unlearning_indices)
     remaining_dataset = Subset(train_data, remaining_indices)
 
@@ -163,7 +162,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         # current_remaining_loss_scaler = BETA * remaining_loss_scaler * (unlearning_epoch / MAX_UNLEARNING_EPOCHS)
         
         # Re-shuffle the remaining data
-        remaining_dloader = DataLoader(remaining_dataset, batch_size=batch_size, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
+        remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
         
         epoch_stats = {}
         start_epoch_time = time.time()
