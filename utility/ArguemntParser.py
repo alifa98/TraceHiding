@@ -32,7 +32,7 @@ def get_args():
         type=int, 
         help="Specify the number of samples to be used for unlearning. Default is 50.",
         nargs='?',  # Makes this argument optional
-        default=50
+        default=20
     )
     
     parser.add_argument(
