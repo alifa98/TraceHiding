@@ -66,6 +66,24 @@ def get_args():
         nargs='?',  # Makes this argument optional
         default='entropy'
     )
+    
+    # For evaluation script
+    parser.add_argument(
+        '--method',
+        choices=["original", "retraining", "our_method", "finetune", "neg_grad", "neg_grad_plus", "badt", "scrub"],
+        type=str,
+        help="Specify the method for evaluation. Default is 'original'.",
+        nargs='?',  # Makes this argument optional
+        default='original'
+    )
+    
+    parser.add_argument(
+        '--epochIndex', 
+        type=int,
+        help="Specify the epoch number for evaluation. Default is 14.",
+        nargs='?',  # Makes this argument optional
+        default=14
+    )
 
     args = parser.parse_args()
     

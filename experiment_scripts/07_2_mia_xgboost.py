@@ -15,7 +15,6 @@ import logging
 import torch
 from imblearn.under_sampling import RandomUnderSampler
 import numpy as np
-from torchmetrics import Accuracy, Precision, Recall, F1Score
 import xgboost as xgb
 from sklearn.metrics import accuracy_score, auc, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score, roc_curve
 
@@ -36,7 +35,6 @@ SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
 EPOCH_NUM_TO_EVALUATE = args.epochIndex
-MIA_TYPE = args.miaType
 
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
@@ -103,7 +101,6 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     X_train_res, y_train_res = undersampler.fit_resample(X_train, y_train)
     
     
-    
     # Predict membership for validation set
     y_pred_probs = xgb_model.predict_proba(X_val)[:, 1]  # Probability of being a member (label=1)
     y_pred_labels = (y_pred_probs >= 0.5).astype(int)    # Thresholding at 0.5
@@ -130,7 +127,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
     plt.savefig(f"{results_folder}/confusion_matrix.pdf", bbox_inches='tight', format='pdf')
-    print(f"Confusion Matrix saved at: {results_folder}/confusion_matrix.pdf")
+    print(f"Confusion Matrix saved at: {results_folder}/confusion_matrix_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
 
     # ROC Curve
     fpr, tpr, _ = roc_curve(y_val, y_pred_probs)
@@ -147,4 +144,8 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     plt.title('Receiver Operating Characteristic (ROC) Curve')
     plt.legend(loc="lower right")
     plt.savefig(f"{results_folder}/roc_curve.pdf", bbox_inches='tight', format='pdf')
-    print(f"ROC Curve saved at: {results_folder}/roc_curve.pdf")
+    print(f"ROC Curve saved at: {results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
+    
+    if BASELINE_METHOD == 'original':
+        # Do not repeat for the REPETITIONS_OF_EACH_SAMPLE_SIZE times.
+        break
