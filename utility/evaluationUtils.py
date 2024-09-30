@@ -26,7 +26,7 @@ def get_model_outputs(model, dataloader, device):
                     'input_ids': inputs,
                     'attention_mask': (inputs != 0).long()
                 }
-                outputs = model(inputs['input_ids'],inputs['attention_mask'])
+                outputs = model(inputs['input_ids'], inputs['attention_mask'])
             elif isinstance(model, torch.nn.Module):
                 outputs = model(inputs)
             else:
