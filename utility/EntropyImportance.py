@@ -11,7 +11,6 @@ class EntropyImportance(ImportanceCalculator):
         self.dataset_size = len(dataset)
         self.dataset_bigram_counts = Counter()
         
-        each_sequence_bigrams = []
         for sequence, uesr_id in tqdm(dataset, desc="Calculating dataset bigram counts"):
             bigrams = self.get_bigrams(sequence)
             self.dataset_bigram_counts.update(bigrams)
