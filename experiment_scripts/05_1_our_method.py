@@ -19,7 +19,7 @@ import wandb
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-os.environ["WANDB_MODE"] = "offline" # then run wandb sync <path_to_your_wandb_run_directory> to sync the results
+# os.environ["WANDB_MODE"] = "offline" # then run wandb sync <path_to_your_wandb_run_directory> to sync the results
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 args = get_args()
@@ -34,9 +34,7 @@ REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 INITIAL_LEARNING_RATE = 1e-4
 ALPHA = 0.9
-BETA = 1
 GAMMA = 0.1
-FORGETTING_INITIAL_POWER = 0 # gives tendency to forget loss in lamda calculation (it can be dynamic maybe)
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -61,8 +59,6 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "learning_rate": INITIAL_LEARNING_RATE,
             "alpha": ALPHA,
             "gamma": GAMMA,
-            "beta": BETA,
-            "forgetting_initial_power": FORGETTING_INITIAL_POWER,
         }
     )
     
@@ -106,59 +102,14 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     student.train()
     
     retrained_model.eval()
-
-    # Calculate initial unlearning and remembering losses without updating the model
-    total_initial_unlearning_loss = 0
-    total_initial_remaining_loss = 0
-
-    with torch.no_grad():
-        for unlearning_batch, remaining_batch in zip(unlearning_dloader, remaining_dloader):
-            x_unlearning, _ = unlearning_batch
-            x_remaining, y_remaining = remaining_batch
-
-            x_unlearning = x_unlearning.to(device)
-            x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
-
-            y_hat_remaining = smart_teacher(x_remaining)
-            y_hat_unlearning = smart_teacher(x_unlearning)
-
-            student_forget_output = student(x_unlearning)
-            student_remember_output = student(x_remaining)
-
-            unlearning_loss = F.kl_div(
-                F.log_softmax(y_hat_unlearning, dim=1),
-                F.log_softmax(student_forget_output, dim=1), reduction='none', log_target=True
-            ).sum(dim=1)
-            
-            total_initial_unlearning_loss += abs(unlearning_loss.mean().item())
-
-            remembering_loss = F.kl_div(
-                F.log_softmax(y_hat_remaining, dim=1),
-                F.log_softmax(student_remember_output, dim=1), reduction='none', log_target=True
-            ).sum(dim=1)
-            
-            cross_entropy_loss = F.cross_entropy(student_remember_output, y_remaining)
-            
-            total_loss = ALPHA * remembering_loss.mean().item() + GAMMA * cross_entropy_loss.item()
-            total_initial_remaining_loss += total_loss
-
-    lamda_dynamic = total_initial_unlearning_loss / (total_initial_remaining_loss + total_initial_unlearning_loss + FORGETTING_INITIAL_POWER)
     
     student.config_lr(INITIAL_LEARNING_RATE)
     optimizer = student.configure_optimizers()
 
     unlearning_stats = {}
     
-    
-    test_accuracy = 0 # initial to do the unlearning phase
-    unlearning_accuracy = 100 # initial to do the unlearning phase
-    
     # Unlearning process
     for unlearning_epoch in range(MAX_UNLEARNING_EPOCHS):
-        
-        # Adjust the scalers dynamically
-        # current_unlearning_loss_scaler = BETA * unlearning_loss_scaler * (1 - unlearning_epoch / MAX_UNLEARNING_EPOCHS)
-        # current_remaining_loss_scaler = BETA * remaining_loss_scaler * (unlearning_epoch / MAX_UNLEARNING_EPOCHS)
         
         # Re-shuffle the remaining data
         remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
@@ -176,46 +127,48 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             x_unlearning, y_unlearning = x_unlearning.to(device), y_unlearning.to(device)
             x_remaining, y_remaining = x_remaining.to(device), y_remaining.to(device)
 
+            # Zero the parameter gradients
             optimizer.zero_grad()
 
             with torch.no_grad():
                 y_hat_remaining = smart_teacher(x_remaining)
                 y_hat_unlearning = smart_teacher(x_unlearning)
                 
-            y_unlearning_output = student(x_unlearning)
-            y_remaining_output = student(x_remaining)
+            # doing the max step (forgetting) [minimizing on the negative of the unlearning loss]
+            student_forget_output = student(x_unlearning)
 
             unlearning_loss = F.kl_div(
                 F.log_softmax(y_hat_unlearning, dim=1),
-                F.log_softmax(y_unlearning_output, dim=1), reduction='none', log_target=True
+                F.log_softmax(student_forget_output, dim=1), reduction='none', log_target=True
             ).sum(dim=1)
             
-            unlearning_loss = unlearning_loss * torch.tensor(importance_calculator.calculate_importance(unlearning_batch)).to(device)
+            batch_importance = torch.Tensor(importance_calculator.calculate_importance(unlearning_batch)).to(device)
+            exp_weighted_importance = torch.exp(batch_importance)
 
-            remembering_loss = F.kl_div(
-                F.log_softmax(y_hat_remaining, dim=1),
-                F.log_softmax(y_remaining_output, dim=1), reduction='none', log_target=True
-            ).sum(dim=1)
-
-            cross_entropy_loss = F.cross_entropy(y_remaining_output, y_remaining)
+            # Weight the loss by the exponentially weighted importance
+            weighted_loss = unlearning_loss * exp_weighted_importance
             
-            loss_remember = (ALPHA * torch.clamp(remembering_loss.mean(), min=0.0) + GAMMA * cross_entropy_loss)
-            loss_forget = torch.clamp(unlearning_loss.mean(), min=0.0)
-            
-            loss = BETA * (lamda_dynamic * loss_remember - (1 - lamda_dynamic) * loss_forget)
-            
+            loss = -1 * torch.clamp(unlearning_loss.mean(), min=0.0) # negative of the unlearning loss
             loss.backward()
             optimizer.step()
-            
             total_epoch_loss += loss.item()
             
-            # if unlearning_epoch < 2 * MAX_UNLEARNING_EPOCHS /3 :
-            if test_accuracy < unlearning_accuracy:
-                # Consider Forgetting with power
-                lamda_dynamic = loss_forget.item() / (loss_remember.item() + loss_forget.item() + (FORGETTING_INITIAL_POWER / (unlearning_epoch + 1)))
-            else:
-                # Focus on retaining the knowledge
-                lamda_dynamic = 1
+            optimizer.zero_grad()
+            
+            # doing the min step
+            student_remember_output = student(x_remaining)
+            remembering_loss = F.kl_div(
+                F.log_softmax(y_hat_remaining, dim=1),
+                F.log_softmax(student_remember_output, dim=1), reduction='none', log_target=True
+            ).sum(dim=1)
+
+            cross_entropy_loss = F.cross_entropy(student_remember_output, y_remaining)
+            
+            loss = ALPHA * torch.clamp(remembering_loss.mean(), min=0.0) + GAMMA * cross_entropy_loss
+
+            loss.backward()
+            optimizer.step()
+            total_epoch_loss += loss.item()
             
 
         end_epoch_time = time.time()
@@ -267,7 +220,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
         
         # WandB logging
-        wandb.log(epoch_stats | {"loss": total_epoch_loss} | {"lamda_dynamic": lamda_dynamic})
+        wandb.log(epoch_stats | {"loss": total_epoch_loss})
         
         # Save unlearning model for this epoch
         torch.save(student, f"{results_folder}/unlearned_{MODEL_NAME}_epoch_{unlearning_epoch}_batch_{BATCH_SIZE}.pt")
