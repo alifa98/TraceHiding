@@ -22,20 +22,18 @@ torch.set_float32_matmul_precision('high')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-
-#LOADING CONFIGURATIONS
 DATASET_NAME = "Ho_Foursquare_NYC"
 MODEL_NAME = "LSTM"
-BASELINE_METHOD = "bad-t" # original, retraining, finetune, neg_grad, neg_grad_plus, bad-t, scrub
+BASELINE_METHOD = "original" # original, retraining, our_method, finetune, neg_grad, neg_grad_plus, bad-t, scrub
 EPOCH_NUMBER_TO_EVALUATE = 14
-IMPORTANCE_OUR_METHOD = 'entropy'
+IMPORTANCE_OUR_METHOD = 'coverage_diversity' # coverage_diversity, entropy
 BATCH_SIZE = 20
 
 RANDOM_SAMPLE_UNLEARNING_SIZES = [200]
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
-METRIC_NAMES = ["performance"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
-MIA_TYPE = "RF" # ["RF", "NN"]
+METRIC_NAMES = ["MIA"] # ["performance", "activation_distance", "JS_divergence", "MIA"]
+MIA_TYPE = "RF" # ["RF", "NN", "XGBoost"]
 # ---------------------------------------------------
 
 
