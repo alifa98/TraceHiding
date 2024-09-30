@@ -65,8 +65,9 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     elif BASELINE_METHOD == "retraining":
         baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt"
         results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
-    elif BASELINE_METHOD == "our_method":
-        baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
+    elif BASELINE_METHOD == "trace_hiding":
+        baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
+        results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/evaluation"
     else:
         baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
         results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
@@ -84,8 +85,8 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     labels_test = torch.zeros(logits_test.shape[0]).to(device)
     labels_remaining = torch.ones(logits_remaining.shape[0]).to(device)
     
-    X = np.vstack([logits_remaining, logits_unlearning, logits_test])
-    y = np.concatenate([labels_remaining, labels_unlearning, labels_test])
+    X = np.vstack([logits_remaining.cpu(), logits_unlearning.cpu(), logits_test.cpu()])
+    y = np.concatenate([labels_remaining.cpu(), labels_unlearning.cpu(), labels_test.cpu()])
     
     
     scaler = StandardScaler()

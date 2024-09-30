@@ -61,6 +61,7 @@ def get_args():
     
     parser.add_argument(
         '--importance', 
+        choices=['entropy', 'coverage_diversity'],
         type=str,
         help="Specify whether to add reaminig data to gradient calculation (NegGrad+). Default is 'False'.",
         nargs='?',  # Makes this argument optional
@@ -70,7 +71,7 @@ def get_args():
     # For evaluation script
     parser.add_argument(
         '--method',
-        choices=["original", "retraining", "our_method", "finetune", "neg_grad", "neg_grad_plus", "badt", "scrub"],
+        choices=["original", "retraining", "trace_hiding", "finetune", "neg_grad", "neg_grad_plus", "badt", "scrub"],
         type=str,
         help="Specify the method for evaluation. Default is 'original'.",
         nargs='?',  # Makes this argument optional
