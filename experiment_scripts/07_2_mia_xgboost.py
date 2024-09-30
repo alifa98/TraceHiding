@@ -94,7 +94,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.3, random_state=42, stratify=y)
     
     # Train an XGBoost model for membership inference attack
-    xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+    xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42, n_jobs=24)
     xgb_model.fit(X_train, y_train)
     
     undersampler = RandomUnderSampler(random_state=42)
@@ -112,21 +112,24 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     recall = recall_score(y_val, y_pred_labels)
     f1 = f1_score(y_val, y_pred_labels)
 
-    # Print the results
-    print(f"AUC-ROC: {auc_roc:.4f}")
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-    print(f"F1-Score: {f1:.4f}")
+    save_dict = {
+        'auc_roc': auc_roc,
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1
+    }
+    
+    json.dump(save_dict, open(f"{results_folder}/metrics_xgboost_mia_epoch_{EPOCH_NUM_TO_EVALUATE}.json", "w"), indent=4)
 
     conf_matrix = confusion_matrix(y_val, y_pred_labels)
     # Plot confusion matrix
     plt.figure(figsize=(6, 4))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Non-member', 'Member'], yticklabels=['Non-member', 'Member'])
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Greens', xticklabels=['Non-member', 'Member'], yticklabels=['Non-member', 'Member'], cbar=False)
     plt.title('Confusion Matrix')
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
-    plt.savefig(f"{results_folder}/confusion_matrix.pdf", bbox_inches='tight', format='pdf')
+    plt.savefig(f"{results_folder}/confusion_matrix_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf", bbox_inches='tight', format='pdf')
     print(f"Confusion Matrix saved at: {results_folder}/confusion_matrix_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
 
     # ROC Curve
@@ -143,7 +146,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     plt.ylabel('True Positive Rate')
     plt.title('Receiver Operating Characteristic (ROC) Curve')
     plt.legend(loc="lower right")
-    plt.savefig(f"{results_folder}/roc_curve.pdf", bbox_inches='tight', format='pdf')
+    plt.savefig(f"{results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf", bbox_inches='tight', format='pdf')
     print(f"ROC Curve saved at: {results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
     
     if BASELINE_METHOD == 'original':
