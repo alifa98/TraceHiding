@@ -71,7 +71,7 @@ def get_args():
     # For evaluation script
     parser.add_argument(
         '--method',
-        choices=["original", "retraining", "trace_hiding", "finetune", "neg_grad", "neg_grad_plus", "badt", "scrub"],
+        choices=["original", "retraining", "trace_hiding", "finetune", "neg_grad", "neg_grad_plus", "bad-t", "scrub"],
         type=str,
         help="Specify the method for evaluation. Default is 'original'.",
         nargs='?',  # Makes this argument optional
