@@ -1,6 +1,5 @@
 from collections import Counter
 import math
-from scipy.stats import entropy
 from tqdm import tqdm
 from utility.ImportanceCalculator import ImportanceCalculator
 
@@ -25,7 +24,7 @@ class FrequencyImportance(ImportanceCalculator):
             self.importances.append(1/importance_inv)
             
         self.mean_importance = sum(self.importances) / len(self.importances)
-        self.std_entropy = math.sqrt(sum([(importance - self.mean_importance) ** 2 for importance in self.importances]) / len(self.importances))
+        self.std_importance = math.sqrt(sum([(importance - self.mean_importance) ** 2 for importance in self.importances]) / len(self.importances))
         self.max_importance = max(self.importances)
         self.min_importance = min(self.importances)
 
