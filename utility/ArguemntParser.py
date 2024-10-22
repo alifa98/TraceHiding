@@ -5,8 +5,8 @@ def get_args():
 
     parser.add_argument(
         '--model', 
-        choices=['GRU', 'LSTM'], 
-        help="Choose the model type: GRU or LSTM. Default is GRU.",
+        choices=['GRU', 'LSTM', 'BERT'], 
+        help="Choose the model type: 'GRU', 'LSTM', or 'BERT'. Default is 'LSTM'.",
         nargs='?',  # Makes this argument optional
         default='LSTM'  # Default value if not provided
     )
@@ -61,7 +61,7 @@ def get_args():
     
     parser.add_argument(
         '--importance', 
-        choices=['entropy', 'coverage_diversity'],
+        choices=['entropy', 'coverage_diversity', 'uuniqe', 'frequency'],
         type=str,
         help="Specify whether to add reaminig data to gradient calculation (NegGrad+). Default is 'False'.",
         nargs='?',  # Makes this argument optional
