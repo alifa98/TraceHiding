@@ -39,8 +39,8 @@ INTERMEDIATE_SIZE = model_params["intermediate_size"]
 BATCH_SIZE = model_params["batch_size"]
 max_sequence_length = model_params["max_position_embeddings"]
 
-train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
-test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
+train_dataset_og = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_dataset_og = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 cell_to_id = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_cell_to_id.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
@@ -73,17 +73,17 @@ class HexagonDatasetForBert(Dataset):
         self.padded_sequences = [self.pad_a_sequence(seq) for seq in self.sequences]
 
 
+sequences, labels = zip(*test_dataset_og)
+test_dataset = HexagonDatasetForBert(sequences, labels)
+test_dataset.pad_sequences()
+    
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
-    reamining_dataset = Subset(train_dataset, remaining_indexes)
-
+    reamining_dataset = Subset(train_dataset_og, remaining_indexes)
+    
     sequences, labels = zip(*reamining_dataset)
     train_dataset = HexagonDatasetForBert(sequences, labels)
-    sequences, labels = zip(*test_dataset)
-    test_dataset = HexagonDatasetForBert(sequences, labels)
-
     train_dataset.pad_sequences()
-    test_dataset.pad_sequences()
 
     # model
     config = BertConfig(
