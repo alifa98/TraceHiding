@@ -74,7 +74,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     
     os.makedirs(results_folder, exist_ok=True)
     
-    baseline_model = torch.load(baseline_model_path, weights_only=False).to(device)
+    baseline_model = torch.load(baseline_model_path, weights_only=False, map_location=device)
     baseline_model.eval()
     
     logits_unlearning, _ = get_model_outputs(baseline_model, unlearning_dloader, device)
