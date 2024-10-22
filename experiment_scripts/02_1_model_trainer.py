@@ -12,7 +12,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import logging
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
