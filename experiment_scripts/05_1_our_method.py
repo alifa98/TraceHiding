@@ -6,6 +6,8 @@ from utility.functions import custom_collate_fn
 from utility.ImportanceCalculator import ImportanceCalculator
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
+from utility.UserUniquenessImportance import UserUniquenessImportance
+from utility.FrequencyOfVisitImportance import FrequencyImportance
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -77,6 +79,10 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         importance_calculator = EntropyImportance()
     elif IMPORTANCE_NAME == "coverage_diversity":
         importance_calculator = CoverageDiversityImportance()
+    elif IMPORTANCE_NAME == "uuniqe":
+        importance_calculator = UserUniquenessImportance()
+    elif IMPORTANCE_NAME == "frequency":
+        importance_calculator = FrequencyImportance()
     else:
         importance_calculator = ImportanceCalculator()
     importance_calculator.prepare(train_data + test_data)
@@ -143,7 +149,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             ).sum(dim=1)
             
             batch_importance = torch.Tensor(importance_calculator.calculate_importance(unlearning_batch)).to(device)
-            exp_weighted_importance = torch.exp(batch_importance)
+            exp_weighted_importance = torch.exp(batch_importance) - 1
 
             # Weight the loss by the exponentially weighted importance
             weighted_loss = unlearning_loss * exp_weighted_importance
