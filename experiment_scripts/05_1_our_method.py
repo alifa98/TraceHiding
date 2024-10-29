@@ -11,6 +11,7 @@ from utility.FrequencyOfVisitImportance import FrequencyImportance
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
+import torch.optim as optim
 import logging
 import torch
 import time
@@ -109,8 +110,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     
     retrained_model.eval()
     
-    student.config_lr(INITIAL_LEARNING_RATE)
-    optimizer = student.configure_optimizers()
+    optimizer = optim.Adam(student.parameters(), lr=INITIAL_LEARNING_RATE)
 
     unlearning_stats = {}
     

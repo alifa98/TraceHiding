@@ -11,12 +11,9 @@ from torch.utils.data import Subset
 from torch.utils.data import DataLoader
 import logging
 import torch
-from scipy.spatial.distance import euclidean
-import numpy as np
 from torchmetrics import Accuracy, Precision, Recall, F1Score
-from sklearn.metrics import accuracy_score
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # Helps with debugging CUDA errors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_float32_matmul_precision('high')
