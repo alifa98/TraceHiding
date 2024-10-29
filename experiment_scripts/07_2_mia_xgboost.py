@@ -95,7 +95,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.3, random_state=42, stratify=y)
     
     # Train an XGBoost model for membership inference attack
-    xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42, n_jobs=24)
+    xgb_model = xgb.XGBClassifier(eval_metric='logloss', random_state=42, n_jobs=24)
     xgb_model.fit(X_train, y_train)
     
     undersampler = RandomUnderSampler(random_state=42)
