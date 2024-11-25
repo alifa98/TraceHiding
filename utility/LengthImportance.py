@@ -1,10 +1,8 @@
-from collections import Counter
-import math
 from tqdm import tqdm
 from utility.ImportanceCalculator import ImportanceCalculator
 
 
-class LengthImportance(ImportanceCalculator):
+class TrajectoryLengthImportance(ImportanceCalculator):
 
     def prepare(self, dataset):
         self.dataset_size = len(dataset)
