@@ -4,7 +4,7 @@ import sys
 import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from utility.FrequencyOfVisitImportance import FrequencyImportance
+from utility.LengthImportance import TrajectoryLengthImportance
 from utility.functions import custom_collate_fn
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 import torch
 import pandas as pd
 
-DATASET_NAME = "Ho_Foursquare_NYC"
+DATASET_NAME = "HO_Rome_Res8"
 
 os.makedirs(f"analysis/{DATASET_NAME}/importance_analysis/", exist_ok=True)
 
@@ -24,11 +24,11 @@ test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.p
 entropy_calculator = EntropyImportance()
 coverage_calculator = CoverageDiversityImportance()
 uniqueness_calculator = UserUniquenessImportance()
-frequency_calculator = FrequencyImportance()
+length_calculator = TrajectoryLengthImportance()
 
 entropy_calculator.prepare(train_data + test_data)
 coverage_calculator.prepare(train_data + test_data)
-frequency_calculator.prepare(train_data + test_data)
+length_calculator.prepare(train_data + test_data)
 uniqueness_calculator.prepare(train_data + test_data)
 
 
@@ -37,7 +37,7 @@ test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custo
 
 all_entropy_importances = []
 all_coverage_importances = []
-all_frequency_importances = []
+all_length_importances = []
 all_uniqueness_importances = []
 all_users = []
 
@@ -49,8 +49,8 @@ for batch in train_dloader:
     batch_importance = coverage_calculator.calculate_importance(batch)
     all_coverage_importances.extend(batch_importance)
     
-    batch_importance = frequency_calculator.calculate_importance(batch)
-    all_frequency_importances.extend(batch_importance)
+    batch_importance = length_calculator.calculate_importance(batch)
+    all_length_importances.extend(batch_importance)
     
     batch_importance = uniqueness_calculator.calculate_importance(batch)
     all_uniqueness_importances.extend(batch_importance)
@@ -60,7 +60,7 @@ for batch in train_dloader:
 data = pd.DataFrame({
     'entropy': all_entropy_importances,
     'coverage': all_coverage_importances,
-    'frequency': all_frequency_importances,
+    'length': all_length_importances,
     'user_uniqueness': all_uniqueness_importances,
     'user': all_users
     })
@@ -76,8 +76,8 @@ plt.figure(figsize=(18, 4))
 # plot in 4 subplots
 plt.subplot(1, 4, 1)
 
-sns.kdeplot(data['frequency'], fill=True, label='Frequency of Visit Importance', common_norm=False, color='red')
-plt.title(f'Frequency of Visit importance')
+sns.kdeplot(data['length'], fill=True, label='Length of Trajectory Importance', common_norm=False, color='red')
+plt.title(f'Length of Trajectory importance')
 plt.xlabel('Importance Score')
 plt.ylabel('Density')
 # plt.legend()
@@ -106,8 +106,8 @@ plt.ylabel('Density')
 # Automatically adjust subplots to prevent overlap
 plt.tight_layout()
 
-plt.savefig(f"analysis/{DATASET_NAME}/importance_analysis/importances.pdf", bbox_inches='tight', format='pdf')
-print(f"Saved importance plot to analysis/{DATASET_NAME}/importance_analysis/importances.pdf")
+plt.savefig(f"analysis/{DATASET_NAME}/importance_analysis/importances_density_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
+print(f"Saved importance plot to analysis/{DATASET_NAME}/importance_analysis/importances_density_{DATASET_NAME.lower()}.pdf")
 
 
 # Plotting density plots for each user (Randomly sample 10 users to visualize)
