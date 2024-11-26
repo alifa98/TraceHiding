@@ -149,19 +149,20 @@ S_composite_optimized = alpha_optimized * S1 + beta_optimized * S2 + gamma_optim
 # Plot density of scores and composite score
 plt.figure(figsize=(12, 8))
 
-sns.kdeplot(S1, label="S1 (Entropy)", linewidth=2)
-sns.kdeplot(S2, label="S2 (Coverage)", linewidth=2)
-sns.kdeplot(S3, label="S3 (Length)", linewidth=2)
-sns.kdeplot(S_composite_optimized, label="Composite Score", linewidth=2, linestyle="--")
+sns.kdeplot(S1, label=r"$\xi_{entropy}$", linewidth=2)
+sns.kdeplot(S2, label=r"$\xi_{coverage}$", linewidth=2)
+sns.kdeplot(S3, label=r"$\xi_{length}$", linewidth=2)
+sns.kdeplot(S_composite_optimized, label="Combined Score", linewidth=2, linestyle="--")
 
-title = ("Density Comparison of Scores and Composite Score \n"
+title = ("Density Comparison of Individual Scores and Combined Score \n"
          r"$\alpha = {:.2f}, \beta = {:.2f}, \gamma = {:.2f}$".format(alpha_optimized, beta_optimized, gamma_optimized))
 plt.title(title, fontsize=16)
-plt.xlabel("Score Value", fontsize=14)
+plt.xlabel("Importance Score", fontsize=14)
 plt.ylabel("Density", fontsize=14)
 plt.legend(fontsize=12)
 plt.grid(alpha=0.4)
-plt.savefig(f"analysis/{DATASET_NAME}/score_optimize/composite_score_density.pdf", bbox_inches='tight')
+plt.savefig(f"analysis/{DATASET_NAME}/score_optimize/single_score_density_{DATASET_NAME.lower()}.pdf", bbox_inches='tight')
+print(f"Saved score density plot to analysis/{DATASET_NAME}/score_optimize/single_score_density_{DATASET_NAME.lower()}.pdf")
 
 # Output the coefficients for reference
 print("Optimized coefficients:")
