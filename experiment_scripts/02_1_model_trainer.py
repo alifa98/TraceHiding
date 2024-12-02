@@ -106,4 +106,4 @@ model_params = {
 }
 json.dump(model_params, open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "w"))
 
-logging.info("Training completed")
+logging.info("Model saved")
