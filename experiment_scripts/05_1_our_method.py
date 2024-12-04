@@ -33,6 +33,7 @@ SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
 MAX_UNLEARNING_EPOCHS = args.epochs
+BIASED_SAMPLE_IMPORTANCE_NAME = args.biased # if it is None, then the sample is not biased
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 INITIAL_LEARNING_RATE = 1e-4
@@ -58,6 +59,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "importance": IMPORTANCE_NAME,
             "sample_size": SAMPLE_SIZE,
             "batch_size": BATCH_SIZE,
+            "bias": BIASED_SAMPLE_IMPORTANCE_NAME,
             "repetition": i,
             "learning_rate": INITIAL_LEARNING_RATE,
             "alpha": ALPHA,
@@ -65,12 +67,15 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         }
     )
     
-    # results folder
-    results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/trace_hiding/{IMPORTANCE_NAME}"
+    # base folder
+    base_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample{f"_biased_{BIASED_SAMPLE_IMPORTANCE_NAME}" if BIASED_SAMPLE_IMPORTANCE_NAME else ""}/sample_size_{SAMPLE_SIZE}/sample_{i}"
+    
+    # create results folder
+    results_folder = f"{base_folder}/{MODEL_NAME}/trace_hiding/{IMPORTANCE_NAME}"
     os.makedirs(results_folder, exist_ok=True)
     
-    unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
-    remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
+    unlearning_indices = torch.load(f"{base_folder}/data/unlearning.indexes.pt", weights_only=False)
+    remaining_indices = torch.load(f"{base_folder}/data/remaining.indexes.pt", weights_only=False)
 
     train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
     test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
@@ -103,12 +108,12 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     # for param in student.parameters():
     #     param.data += 0.03 * torch.randn_like(param)
 
-    retrained_model = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
+    # retrained_model = torch.load(f"{base_folder}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
 
     smart_teacher.eval()
     student.train()
     
-    retrained_model.eval()
+    # retrained_model.eval()
     
     optimizer = optim.Adam(student.parameters(), lr=INITIAL_LEARNING_RATE)
 
@@ -184,7 +189,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         logging.info("-------------------------------------------------")
         logging.info(f"Epoch: {unlearning_epoch}")
         student_accuracy_1, student_accuracy_3, student_accuracy_5, student_precision, student_recall, student_f1 = student.test_model(unlearning_dloader)
-        retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(unlearning_dloader)
+        # retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(unlearning_dloader)
         epoch_stats["unlearning_student_accuracy_1"] = student_accuracy_1.item()
         epoch_stats["unlearning_student_accuracy_3"] = student_accuracy_3.item()
         epoch_stats["unlearning_student_accuracy_5"] = student_accuracy_5.item()
@@ -201,10 +206,10 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         unlearning_accuracy = student_accuracy_1.item()
         
         logging.info(f"Student Unlearning Accuracy@1: {student_accuracy_1}")
-        logging.info(f"Retrained Unlearning Accuracy@1: {retrained_accuracy_1}")
+        # logging.info(f"Retrained Unlearning Accuracy@1: {retrained_accuracy_1}")
         
         student_accuracy_1, student_accuracy_3, student_accuracy_5, student_precision, student_recall, student_f1 = student.test_model(test_dloader)
-        retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(test_dloader)
+        # retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(test_dloader)
         epoch_stats["test_student_accuracy_1"] = student_accuracy_1.item()
         epoch_stats["test_student_accuracy_3"] = student_accuracy_3.item()
         epoch_stats["test_student_accuracy_5"] = student_accuracy_5.item()
@@ -221,7 +226,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         test_accuracy = student_accuracy_1.item()
         
         logging.info(f"Student Test Accuracy@1: {student_accuracy_1}")
-        logging.info(f"Retrained Test Accuracy@1: {retrained_accuracy_1}")
+        # logging.info(f"Retrained Test Accuracy@1: {retrained_accuracy_1}")
         
         epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
         

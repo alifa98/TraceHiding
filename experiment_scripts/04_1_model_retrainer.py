@@ -23,6 +23,7 @@ MODEL_NAME = args.model
 DATASET_NAME = args.dataset
 SAMPLE_SIZE = args.sampleSize
 SCENARIO = args.scenario
+BIASED_SAMPLE_IMPORTANCE_NAME = args.biased # if it is None, then the sample is not biased
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
@@ -41,7 +42,11 @@ test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_tes
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
-    remaining_indexes = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
+    
+    # base folder
+    base_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample{f"_biased_{BIASED_SAMPLE_IMPORTANCE_NAME}" if BIASED_SAMPLE_IMPORTANCE_NAME else ""}/sample_size_{SAMPLE_SIZE}/sample_{i}"
+    
+    remaining_indexes = torch.load(f"{base_folder}/data/remaining.indexes.pt", weights_only=False)
     reamining_dataset = Subset(train_dataset, remaining_indexes)
 
     reamining_dloader = DataLoader(reamining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
@@ -62,7 +67,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         mode='min'
     )
 
-    results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/retraining"
+    results_folder = f"{base_folder}/{MODEL_NAME}/retraining"
     os.makedirs(results_folder, exist_ok=True)
     
     CHECKPOINT_DIR = f"{results_folder}/checkpoints/"

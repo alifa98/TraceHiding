@@ -17,7 +17,7 @@ import wandb
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 torch.set_float32_matmul_precision('high')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
-os.environ["WANDB_MODE"] = "offline" # then run wandb sync <path_to_your_wandb_run_directory> to sync the results
+# os.environ["WANDB_MODE"] = "offline" # then run wandb sync <path_to_your_wandb_run_directory> to sync the results
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
@@ -28,6 +28,7 @@ SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
 UNLEARNING_EPOCHS = args.epochs
+BIASED_SAMPLE_IMPORTANCE_NAME = args.biased # if it is None, then the sample is not biased
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 LEARNING_RATE = 5e-5
@@ -49,17 +50,21 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "scenario": SCENARIO + " deletion",
             "sample_size": SAMPLE_SIZE,
             "batch_size": BATCH_SIZE,
+            "bias": BIASED_SAMPLE_IMPORTANCE_NAME,
             "repetition": i,
             "learning_rate": LEARNING_RATE,
         }
     )
 
+    # base folder
+    base_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample{f"_biased_{BIASED_SAMPLE_IMPORTANCE_NAME}" if BIASED_SAMPLE_IMPORTANCE_NAME else ""}/sample_size_{SAMPLE_SIZE}/sample_{i}"
+    
     # results folder
-    results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/bad-t"
+    results_folder = f"{base_folder}/{MODEL_NAME}/bad-t"
     os.makedirs(results_folder, exist_ok=True)
 
-    unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
-    remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
+    unlearning_indices = torch.load(f"{base_folder}/data/unlearning.indexes.pt", weights_only=False)
+    remaining_indices = torch.load(f"{base_folder}/data/remaining.indexes.pt", weights_only=False)
 
     train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
     test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)

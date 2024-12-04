@@ -31,6 +31,7 @@ SCENARIO = args.scenario
 SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
 EPOCH_NUM_TO_EVALUATE = args.epochIndex
+BIASED_SAMPLE_IMPORTANCE_NAME = args.biased # if it is None, then the sample is not biased
 
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
@@ -43,9 +44,12 @@ dataset_stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME
 
 
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
+    
+    # base folder
+    base_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample{f"_biased_{BIASED_SAMPLE_IMPORTANCE_NAME}" if BIASED_SAMPLE_IMPORTANCE_NAME else ""}/sample_size_{SAMPLE_SIZE}/sample_{i}"
 
-    unlearning_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/unlearning.indexes.pt", weights_only=False)
-    remaining_indices = torch.load(f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/data/remaining.indexes.pt", weights_only=False)
+    unlearning_indices = torch.load(f"{base_folder}/data/unlearning.indexes.pt", weights_only=False)
+    remaining_indices = torch.load(f"{base_folder}/data/remaining.indexes.pt", weights_only=False)
 
     unlearning_dataset = Subset(train_dataset, unlearning_indices)
     remaining_dataset = Subset(train_dataset, remaining_indices)
@@ -58,14 +62,14 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         baseline_model_path = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt"
         results_folder = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/evaluation"
     elif BASELINE_METHOD == "retraining":
-        baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt"
-        results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
+        baseline_model_path = f"{base_folder}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt"
+        results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
     elif BASELINE_METHOD == "trace_hiding":
-        baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
-        results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/evaluation"
+        baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
+        results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/evaluation"
     else:
-        baseline_model_path = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
-        results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{SAMPLE_SIZE}/sample_{i}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
+        baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
+        results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
     
     os.makedirs(results_folder, exist_ok=True)
     

@@ -6,17 +6,18 @@ from scipy import stats
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.functions import compute_confidence_interval
 
-DATASET_NAME = "HO_Rome_Res8"
-MODEL_NAME = "LSTM"
-SAMPLE_SIZES = [1, 5, 10, 20]
+DATASET_NAME = "HO_Geolife_Res8"
+BIASED_SAMPLE_IMPORTANCE_NAME = "entropy"
+SAMPLE_SIZES = [1, 2, 3, 4]
+MODEL_NAME = "GRU"
 METHODS_EPOCH = {
-    "retraining": 14,
-    # "finetune": 14,
-    # "neg_grad": 14,
-    # "neg_grad_plus": 14,
-    # "bad-t": 14,
-    # "scrub": 14,
-    # "trace_hiding": 14,
+    # "retraining": 7,
+    # "finetune": 7,
+    # "neg_grad": 7,
+    # "neg_grad_plus": 7,
+    # "bad-t": 7,
+    # "scrub": 7,
+    "trace_hiding": 7,
 }
 IMPORTANCE = "entropy"
 MIA = "xgboost"
@@ -30,7 +31,7 @@ for method_name, epoch in METHODS_EPOCH.items():
         experiment_data = []
         for i in range(NUM_RUNS):
             
-            results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/{method_name}/{IMPORTANCE +'/' if method_name == 'trace_hiding' else ''}evaluation"
+            results_folder = f"experiments/{DATASET_NAME}/unlearning/{SCENARIO}_sample{f"_biased_{BIASED_SAMPLE_IMPORTANCE_NAME}" if BIASED_SAMPLE_IMPORTANCE_NAME else ""}/sample_size_{sample_size}/sample_{i}/{MODEL_NAME}/{method_name}/{IMPORTANCE +'/' if method_name == 'trace_hiding' else ''}evaluation"
             
             mia_results_json_path = f"{results_folder}/metrics_{MIA}_mia_epoch_{epoch}.json"
             perf_results_json_path = f"{results_folder}/metrics_performance_epoch_{epoch}.json"
