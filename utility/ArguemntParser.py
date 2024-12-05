@@ -86,6 +86,14 @@ def get_args():
         default=14
     )
 
+    parser.add_argument(
+        '--biased',
+        type=str,
+        help="Specify the name of the biased importance. Default is None.",
+        nargs='?',  # Makes this argument optional
+        default=None
+    )
+    
     args = parser.parse_args()
     
     return args
