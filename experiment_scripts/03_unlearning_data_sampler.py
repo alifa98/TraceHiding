@@ -24,6 +24,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 SAMPLE_BASED_ON_IMPORTANCE = True
 IMPORTANCE_NAME = "entropy" # entropy, coverage, length
+AGGREGATION_FUNCTION = "sum" # sum, mean, max
 
 DATASET_NAME = "HO_Rome_Res8"
 
@@ -79,13 +80,18 @@ if SAMPLE_BASED_ON_IMPORTANCE:
         })
     
     # we should group by user so we can sample the users based on the importance
-    user_importance = data.groupby('user').sum()
+    if AGGREGATION_FUNCTION == "sum":
+        user_importance = data.groupby('user').sum()
+    elif AGGREGATION_FUNCTION == "mean":
+        user_importance = data.groupby('user').mean()
+    elif AGGREGATION_FUNCTION == "max":
+        user_importance = data.groupby('user').max()
 
 # the user_ids are from 0 to number_of_users (see HexagonCheckInUserDataset)
 for sample_size in USER_UNLEARNING_SAMPLE_SIZE:
     for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         
-        base_dir = f"experiments/{DATASET_NAME}/unlearning/user_sample{f"_biased_{IMPORTANCE_NAME}" if SAMPLE_BASED_ON_IMPORTANCE else ""}/sample_size_{sample_size}/sample_{i}/data/"
+        base_dir = f"experiments/{DATASET_NAME}/unlearning/user_sample{f"_biased_{IMPORTANCE_NAME}_{AGGREGATION_FUNCTION}" if SAMPLE_BASED_ON_IMPORTANCE else ""}/sample_size_{sample_size}/sample_{i}/data/"
         os.makedirs(base_dir, exist_ok=True)
         
         if SAMPLE_BASED_ON_IMPORTANCE:
@@ -101,5 +107,5 @@ for sample_size in USER_UNLEARNING_SAMPLE_SIZE:
         remaining_indexes = [i for i, (_, u_id) in enumerate(training_dataset) if u_id not in random_user_ids]
         torch.save(unlearning_indexes, base_dir + "unlearning.indexes.pt")
         torch.save(remaining_indexes, base_dir + "remaining.indexes.pt")
-        logging.info(f"User sampling of size {sample_size} done for sample {i}" + (f" biased by {IMPORTANCE_NAME}" if SAMPLE_BASED_ON_IMPORTANCE else ""))
+        logging.info(f"User sampling of size {sample_size} done for sample {i}" + (f" biased by {IMPORTANCE_NAME}_{AGGREGATION_FUNCTION}" if SAMPLE_BASED_ON_IMPORTANCE else ""))
 
