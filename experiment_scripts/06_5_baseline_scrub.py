@@ -55,6 +55,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "sample_size": SAMPLE_SIZE,
             "batch_size": BATCH_SIZE,
             "bias": BIASED_SAMPLE_IMPORTANCE_NAME,
+            "is_biased": BIASED_SAMPLE_IMPORTANCE_NAME is not None,
             "repetition": i,
             "learning_rate": LEARNING_RATE,
             "alpha": ALPHA,

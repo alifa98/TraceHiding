@@ -50,6 +50,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             "scenario": SCENARIO + " deletion",
             "sample_size": SAMPLE_SIZE,
             "batch_size": BATCH_SIZE,
+            "is_biased": BIASED_SAMPLE_IMPORTANCE_NAME is not None,
             "bias": BIASED_SAMPLE_IMPORTANCE_NAME,
             "repetition": i,
             "learning_rate": LEARNING_RATE,
