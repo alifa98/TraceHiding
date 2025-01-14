@@ -9,7 +9,6 @@ import sys
 import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from utility.FrequencyOfVisitImportance import FrequencyImportance
 from utility.functions import custom_collate_fn
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
@@ -18,7 +17,7 @@ from torch.utils.data import DataLoader
 import torch
 import pandas as pd
 
-DATASET_NAME = "HO_Geolife_Res8"
+DATASET_NAME = "HO_Rome_Res8"
 
 os.makedirs(f"analysis/{DATASET_NAME}/score_optimize", exist_ok=True)
 
@@ -116,8 +115,8 @@ def combined_objective(coefs):
     
     # Combined objective: maximize variance, minimize skewness and kurtosis
     # Adjust weights (w1, w2, w3) as needed
-    w1, w2, w3 = 0.5, 0.7, 0.5
-    return -(w1 * variance - w2 * abs(skewness) - w3 * excess_kurtosis)
+    w1, w2, w3 = 0.2, 0.5, 0.3
+    return -(w1 * variance + w2 * abs(skewness) + w3 * excess_kurtosis)
 
 
 
