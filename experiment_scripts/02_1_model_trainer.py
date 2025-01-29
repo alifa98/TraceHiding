@@ -1,10 +1,12 @@
 import os
 import sys
+import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import torch
 import json
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 from models.HoLSTM import LitHigherOrderLSTM
 from models.HoGRU import LitHigherOrderGRU
 from utility.functions import custom_collate_fn
@@ -47,8 +49,10 @@ test_dloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, collate_fn=custom
 # Create model
 if MODEL_NAME == "LSTM":
     model = LitHigherOrderLSTM(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE, HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
+    model_class = LitHigherOrderLSTM
 elif MODEL_NAME == "GRU":
     model = LitHigherOrderGRU(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE, HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
+    model_class = LitHigherOrderGRU
 else:
     raise ValueError("Model name is not valid")
 
@@ -62,6 +66,15 @@ early_stop_callback = EarlyStopping(
 )
 
 CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoints"
+
+checkpoint_callback = ModelCheckpoint(
+    dirpath=CHECKPOINT_DIR,
+    filename="best_model",
+    monitor="val_loss",  # Metric to monitor (change if needed)
+    mode="min",  # "min" for loss (lower is better), "max" for accuracy
+    save_top_k=1,  # Only save the best model
+)
+
 trainer = pl.Trainer(
         accelerator="gpu",
         devices=[0],
@@ -70,7 +83,8 @@ trainer = pl.Trainer(
         enable_checkpointing=True,
         default_root_dir=CHECKPOINT_DIR,
         callbacks=[
-            early_stop_callback
+            early_stop_callback,
+            checkpoint_callback
        ]
 )
 
@@ -84,13 +98,26 @@ torch.save(model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial
 #     test_dloader = DataLoader(train_dataset[:BATCH_SIZE], batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, num_workers=24)
 #     break
 
+training_start_time = time.time()
+
 # train the model
 trainer.fit(model, train_dloader, test_dloader)
-
+training_end_time = time.time()
 logging.info("Training completed")
 
+logging.info(f"Training time: {training_end_time - training_start_time}")
 
-logging.info("Saving model ...")
+logging.info("Loading the best model ...")
+best_model_path = checkpoint_callback.best_model_path
+print(f"Best model saved at: {best_model_path}")
+model = model_class.load_from_checkpoint(best_model_path)
+
+# test the model
+logging.info("Testing the best model ...")
+test_result = model.test_model(test_dloader)
+logging.info(f"Test result: {test_result}")
+
+logging.info("Saving the loaded model ...")
 
 # save the model
 torch.save(model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt")
@@ -102,8 +129,10 @@ model_params = {
     "number_of_layers": NUMBER_OF_LAYERS,
     "dropout": DROPOUT,
     "batch_size": BATCH_SIZE,
-    "trained_epochs": trainer.current_epoch
+    "trained_epochs": trainer.current_epoch,
+    "test_result": test_result,
+    "training_time": training_end_time - training_start_time
 }
 json.dump(model_params, open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "w"))
 
-logging.info("Model saved")
+logging.info("Model and its stats is saved.")

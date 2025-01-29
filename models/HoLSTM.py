@@ -70,7 +70,14 @@ class LitHigherOrderLSTM(pl.LightningModule):
             recall(y_hat, y)
             f1(y_hat, y)
             
-        return accuracy_1.compute(), accuracy_3.compute(), accuracy_5.compute(), precision.compute(), recall.compute(), f1.compute()
+        return {
+            'accuracy_1': accuracy_1.compute().item(),
+            'accuracy_3': accuracy_3.compute().item(),
+            'accuracy_5': accuracy_5.compute().item(),
+            'precision': precision.compute().item(),
+            'recall': recall.compute().item(),
+            'f1': f1.compute().item()
+        }
         
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
