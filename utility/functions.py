@@ -44,3 +44,8 @@ def compute_confidence_interval(values, confidence_level=0.95):
     ci_lower, ci_upper = stats.t.interval(confidence_level, n - 1, loc=mean, scale=standard_error)
 
     return mean , (ci_upper - mean)
+
+def check_stopping_criteria(target_accuracy, unlearning_accuracy, delta=0.01):
+    if unlearning_accuracy - target_accuracy < delta:
+        return True
+    return False
