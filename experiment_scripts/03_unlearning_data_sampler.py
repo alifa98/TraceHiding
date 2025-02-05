@@ -19,8 +19,10 @@ from utility.LengthImportance import TrajectoryLengthImportance
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
-# HO_Rome_Res8: 1, 5, 10, 20, 270
-
+# HO_Rome_Res8-217:     2, 10, 21, 43; 
+# HO_Geolife_Res8-26:   1, 2, 3, 5; 
+# HO_NYC_Res9-233:      2, 11, 23, 46; 
+# HO_Porto_Res8-438:    4, 21, 43, 88; 
 
 SAMPLE_BASED_ON_IMPORTANCE = True
 IMPORTANCE_NAME = "entropy" # entropy, coverage, length
