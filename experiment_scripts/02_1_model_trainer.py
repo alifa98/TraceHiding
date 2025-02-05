@@ -20,19 +20,52 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ------------------------------------- START CONFIGURATIONS -------------------------------------#
 
-MODEL_NAME = sys.argv[1] if len(sys.argv) > 1 else "LSTM"
-DATASET_NAME = "Ho_Foursquare_NYC"
-# DATASET_NAME = "HO_Porto_Res8"
-# DATASET_NAME = "HO_Geolife_Res8"
+# Check if the expected number of arguments is provided
+if len(sys.argv) < 3:
+    print("Usage: python experiment_scripts/02_1_model_trainer.py <model_type> <dataset_name>")
+    sys.exit(1)
+    
+MODEL_NAME = sys.argv[1]
+DATASET_NAME = sys.argv[2]
+
+training_configs = {
+    "HO_Rome_Res8": {
+        "embedding_size": 256,
+        "hidden_size": 128,
+        "number_of_layers": 3,
+        "dropout": 0.15,
+        "batch_size": 10,
+    },
+    "HO_Porto_Res8": {
+        "embedding_size": 1024,
+        "hidden_size": 256,
+        "number_of_layers": 3,
+        "dropout": 0.1,
+        "batch_size": 200,
+    },
+    "HO_Geolife_Res8": {
+        "embedding_size": 256,
+        "hidden_size": 64,
+        "number_of_layers": 2,
+        "dropout": 0.05,
+        "batch_size": 10,
+    },
+    "HO_NYC_Res9": {
+        "embedding_size": 256,
+        "hidden_size": 128,
+        "number_of_layers": 2,
+        "dropout": 0.1,
+        "batch_size": 50,
+    }
+}
 
 # MODEL PARAMETERS
-EMBEDDING_SIZE = 100
-HIDDEN_SIZE = 100
-NUMBER_OF_LAYERS = 1
-DROPOUT = 0.3
-BATCH_SIZE = 20
-MAX_EPOCHS = 300
-# {embedding_size': 231, 'hidden_size': 447, 'number_of_layers': 3, 'dropout': 0.29125920978558156, 'batch_size': 22} best params for LSTM on HO_Rome_Res8-v2
+EMBEDDING_SIZE = training_configs[DATASET_NAME]["embedding_size"]
+HIDDEN_SIZE = training_configs[DATASET_NAME]["hidden_size"]
+NUMBER_OF_LAYERS = training_configs[DATASET_NAME]["number_of_layers"]
+DROPOUT = training_configs[DATASET_NAME]["dropout"]
+BATCH_SIZE = training_configs[DATASET_NAME]["batch_size"]
+MAX_EPOCHS = 150
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
@@ -46,7 +79,6 @@ stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.
 train_dloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
 test_dloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, num_workers=24)
 
-# Create model
 if MODEL_NAME == "LSTM":
     model = LitHigherOrderLSTM(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE, HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
     model_class = LitHigherOrderLSTM
@@ -56,13 +88,12 @@ elif MODEL_NAME == "GRU":
 else:
     raise ValueError("Model name is not valid")
 
-# Configure the EarlyStopping callback
 early_stop_callback = EarlyStopping(
-    monitor='val_loss',  # Metric to monitor
-    min_delta=0.00,  # Minimum change to qualify as an improvement
-    patience=7,  # Number of epochs with no improvement after which training will be stopped
+    monitor='val_loss',
+    min_delta=0.00,
+    patience=11,
     verbose=True,
-    mode='min'  # Because we want to minimize validation loss
+    mode='min'
 )
 
 CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoints"
@@ -70,9 +101,9 @@ CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoi
 checkpoint_callback = ModelCheckpoint(
     dirpath=CHECKPOINT_DIR,
     filename="best_model",
-    monitor="val_loss",  # Metric to monitor (change if needed)
-    mode="min",  # "min" for loss (lower is better), "max" for accuracy
-    save_top_k=1,  # Only save the best model
+    monitor="val_loss",
+    mode="min",
+    save_top_k=1,
 )
 
 trainer = pl.Trainer(
@@ -91,16 +122,7 @@ trainer = pl.Trainer(
 # save initial model
 torch.save(model, f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt")
 
-
-#debug: put just one batch in train_dloader to check if the model is working
-# for batch in train_dloader:
-#     train_dloader = DataLoader(train_dataset[:BATCH_SIZE], batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
-#     test_dloader = DataLoader(train_dataset[:BATCH_SIZE], batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, num_workers=24)
-#     break
-
 training_start_time = time.time()
-
-# train the model
 trainer.fit(model, train_dloader, test_dloader)
 training_end_time = time.time()
 logging.info("Training completed")
