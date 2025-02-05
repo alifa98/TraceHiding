@@ -2,12 +2,11 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.ArguemntParser import get_args
-from utility.functions import custom_collate_fn
+from utility.functions import check_stopping_criteria, custom_collate_fn
 from utility.ImportanceCalculator import ImportanceCalculator
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
 from utility.UserUniquenessImportance import UserUniquenessImportance
-from utility.FrequencyOfVisitImportance import FrequencyImportance
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -88,8 +87,6 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         importance_calculator = CoverageDiversityImportance()
     elif IMPORTANCE_NAME == "uuniqe":
         importance_calculator = UserUniquenessImportance()
-    elif IMPORTANCE_NAME == "frequency":
-        importance_calculator = FrequencyImportance()
     else:
         importance_calculator = ImportanceCalculator()
     importance_calculator.prepare(train_data + test_data)
@@ -98,8 +95,11 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     remaining_dataset = Subset(train_data, remaining_indices)
 
     unlearning_dloader = DataLoader(unlearning_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
-    remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collate_fn, shuffle=True, num_workers=24)
     test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collate_fn, num_workers=24)
+    
+    # Load the original models stats
+    original_model_stats = json.load(open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "r"))
+    original_test_accuracy = original_model_stats['test_result']["accuracy_1"]
 
     # Load teacher and student models
     smart_teacher = torch.load(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
@@ -109,12 +109,8 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     # for param in student.parameters():
     #     param.data += 0.03 * torch.randn_like(param)
 
-    # retrained_model = torch.load(f"{base_folder}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt", weights_only=False).to(device)
-
     smart_teacher.eval()
     student.train()
-    
-    # retrained_model.eval()
     
     optimizer = optim.Adam(student.parameters(), lr=INITIAL_LEARNING_RATE)
 
@@ -182,62 +178,27 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             optimizer.step()
             total_epoch_loss += loss.item()
             
-
         end_epoch_time = time.time()
-
+        
         student.eval()
 
-        logging.info("-------------------------------------------------")
-        logging.info(f"Epoch: {unlearning_epoch}")
-        student_accuracy_1, student_accuracy_3, student_accuracy_5, student_precision, student_recall, student_f1 = student.test_model(unlearning_dloader)
-        # retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(unlearning_dloader)
-        epoch_stats["unlearning_student_accuracy_1"] = student_accuracy_1.item()
-        epoch_stats["unlearning_student_accuracy_3"] = student_accuracy_3.item()
-        epoch_stats["unlearning_student_accuracy_5"] = student_accuracy_5.item()
-        epoch_stats["unlearning_student_precision"] = student_precision.item()
-        epoch_stats["unlearning_student_recall"] = student_recall.item()
-        epoch_stats["unlearning_student_f1"] = student_f1.item()
-        # epoch_stats["unlearning_retrained_accuracy_1"] = retrained_accuracy_1.item()
-        # epoch_stats["unlearning_retrained_accuracy_3"] = retrained_accuracy_3.item()
-        # epoch_stats["unlearning_retrained_accuracy_5"] = retrained_accuracy_5.item()
-        # epoch_stats["unlearning_retrained_precision"] = retrained_precision.item()
-        # epoch_stats["unlearning_retrained_recall"] = retrained_recall.item()
-        # epoch_stats["unlearning_retrained_f1"] = retrained_f1.item()
-        
-        unlearning_accuracy = student_accuracy_1.item()
-        
-        logging.info(f"Student Unlearning Accuracy@1: {student_accuracy_1}")
-        # logging.info(f"Retrained Unlearning Accuracy@1: {retrained_accuracy_1}")
-        
-        student_accuracy_1, student_accuracy_3, student_accuracy_5, student_precision, student_recall, student_f1 = student.test_model(test_dloader)
-        # retrained_accuracy_1, retrained_accuracy_3, retrained_accuracy_5, retrained_precision, retrained_recall, retrained_f1 = retrained_model.test_model(test_dloader)
-        epoch_stats["test_student_accuracy_1"] = student_accuracy_1.item()
-        epoch_stats["test_student_accuracy_3"] = student_accuracy_3.item()
-        epoch_stats["test_student_accuracy_5"] = student_accuracy_5.item()
-        epoch_stats["test_student_precision"] = student_precision.item()
-        epoch_stats["test_student_recall"] = student_recall.item()
-        epoch_stats["test_student_f1"] = student_f1.item()
-        # epoch_stats["test_retrained_accuracy_1"] = retrained_accuracy_1.item()
-        # epoch_stats["test_retrained_accuracy_3"] = retrained_accuracy_3.item()
-        # epoch_stats["test_retrained_accuracy_5"] = retrained_accuracy_5.item()
-        # epoch_stats["test_retrained_precision"] = retrained_precision.item()
-        # epoch_stats["test_retrained_recall"] = retrained_recall.item()
-        # epoch_stats["test_retrained_f1"] = retrained_f1.item()
-        
-        test_accuracy = student_accuracy_1.item()
-        
-        logging.info(f"Student Test Accuracy@1: {student_accuracy_1}")
-        # logging.info(f"Retrained Test Accuracy@1: {retrained_accuracy_1}")
-        
         epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
         
-        # WandB logging
-        wandb.log(epoch_stats | {"loss": total_epoch_loss})
+        unlearning_data_eval = student.test_model(unlearning_dloader)
+        test_data_eval = student.test_model(test_dloader)
+        
+        unlearned_test_accuracy = test_data_eval['accuracy_1']
+        
+        wandb.log(epoch_stats | {"loss": total_epoch_loss} | {"unlearning_" + k: v for k, v in unlearning_data_eval.items() } | {"test_" + k: v for k, v in test_data_eval.items() })
         
         # Save unlearning model for this epoch
         torch.save(student, f"{results_folder}/unlearned_{MODEL_NAME}_epoch_{unlearning_epoch}_batch_{BATCH_SIZE}.pt")
         
         unlearning_stats[unlearning_epoch] = epoch_stats
+        
+        # Stop Unlearning at this epoch
+        if check_stopping_criteria(original_test_accuracy, unlearned_test_accuracy):
+            break
         
     wandb.finish()
     
