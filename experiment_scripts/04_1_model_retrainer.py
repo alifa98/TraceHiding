@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.ArguemntParser import get_args
 from torch.utils.data import Subset
@@ -10,6 +11,7 @@ from utility.functions import custom_collate_fn
 from models.HoLSTM import LitHigherOrderLSTM
 from models.HoGRU import LitHigherOrderGRU
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 import json
 import torch
 
@@ -54,23 +56,34 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
     if MODEL_NAME == "LSTM":
         model = LitHigherOrderLSTM(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE, HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
+        model_class = LitHigherOrderLSTM
     elif MODEL_NAME == "GRU":
         model = LitHigherOrderGRU(stats['vocab_size'],  stats['users_size'], EMBEDDING_SIZE, HIDDEN_SIZE, NUMBER_OF_LAYERS, DROPOUT)
+        model_class = LitHigherOrderGRU
     else:
         raise Exception("Model name is not defined correctly")
 
     early_stop_callback = EarlyStopping(
-        monitor='val_loss', 
-        min_delta=0.00,
-        patience=7,
+        monitor='val_loss',  # Metric to monitor
+        min_delta=0.00,  # Minimum change to qualify as an improvement
+        patience=7,  # Number of epochs with no improvement after which training will be stopped
         verbose=True,
-        mode='min'
+        mode='min'  # Because we want to minimize validation loss
     )
 
     results_folder = f"{base_folder}/{MODEL_NAME}/retraining"
     os.makedirs(results_folder, exist_ok=True)
     
     CHECKPOINT_DIR = f"{results_folder}/checkpoints/"
+    
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=CHECKPOINT_DIR,
+        filename="best_model",
+        monitor="val_loss",
+        mode="min",
+        save_top_k=1,
+    )
+    
     trainer = pl.Trainer(
         accelerator="gpu",
         devices=[0],
@@ -79,10 +92,35 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         enable_checkpointing=True,
         default_root_dir=CHECKPOINT_DIR,
         callbacks=[
-            early_stop_callback
-            ]
-        )
+            early_stop_callback,
+            checkpoint_callback
+       ]
+    )
+    
+    
+    training_start_time = time.time()
     trainer.fit(model, reamining_dloader, test_dloader)
+    training_end_time = time.time()
+    logging.info("Retraining of the model is done.")
+    
+    logging.info(f"Training time: {training_end_time - training_start_time}")
+    
+    
+    logging.info("Loading the best model ...")
+    best_model_path = checkpoint_callback.best_model_path
+    model = model_class.load_from_checkpoint(best_model_path)
+    
     torch.save(model, f"{results_folder}/retrained_{MODEL_NAME}_model.pt")
     
+    logging.info(f"Model is now saved in: {results_folder}/retrained_{MODEL_NAME}_model.pt")
+    
+    # model parameters
+    retrained_stats = {
+        "trained_epochs": trainer.current_epoch,
+        "training_time": training_end_time - training_start_time
+    }
+    json.dump(retrained_stats, open(f"{results_folder}/retrained_{MODEL_NAME}_model.json", "w"))
+    
+    logging.info(f"Retraining stats are saved in: {results_folder}/retrained_{MODEL_NAME}_model.json")
+
     logging.info(f"The model For {SCENARIO} sample unlearning of sample {i} of size {SAMPLE_SIZE} retrained successfully.")
