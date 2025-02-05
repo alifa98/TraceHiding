@@ -187,7 +187,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         unlearning_data_eval = student.test_model(unlearning_dloader)
         test_data_eval = student.test_model(test_dloader)
         
-        unlearned_test_accuracy = test_data_eval['accuracy_1']
+        unlearning_data_accuracy = unlearning_data_eval['accuracy_1']
         
         wandb.log(epoch_stats | {"loss": total_epoch_loss} | {"unlearning_" + k: v for k, v in unlearning_data_eval.items() } | {"test_" + k: v for k, v in test_data_eval.items() })
         
@@ -197,8 +197,12 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         unlearning_stats[unlearning_epoch] = epoch_stats
         
         # Stop Unlearning at this epoch
-        if check_stopping_criteria(original_test_accuracy, unlearned_test_accuracy):
+        if check_stopping_criteria(original_test_accuracy, unlearning_data_accuracy, delta=0.001):
+            logging.info(f"Unlearning stopped early at epoch {unlearning_epoch} for sample size {SAMPLE_SIZE}, no. {i}")
             break
+        
+    else:
+        logging.info(f"Unlearning finished all epochs for sample size {SAMPLE_SIZE}, no. {i}")
         
     wandb.finish()
     
