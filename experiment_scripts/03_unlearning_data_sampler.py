@@ -88,6 +88,8 @@ if SAMPLE_BASED_ON_IMPORTANCE:
         user_importance = data.groupby('user').mean()
     elif AGGREGATION_FUNCTION == "max":
         user_importance = data.groupby('user').max()
+    else:
+        raise ValueError("Invalid aggregation function")
 
 # the user_ids are from 0 to number_of_users (see HexagonCheckInUserDataset)
 for sample_size in USER_UNLEARNING_SAMPLE_SIZE:
