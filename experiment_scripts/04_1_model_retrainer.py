@@ -37,7 +37,7 @@ HIDDEN_SIZE = model_params["hidden_size"]
 NUMBER_OF_LAYERS = model_params["number_of_layers"]
 DROPOUT = model_params["dropout"]
 BATCH_SIZE = model_params["batch_size"]
-MAX_EPOCHS = 300
+MAX_EPOCHS = 150
 
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
@@ -64,11 +64,11 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         raise Exception("Model name is not defined correctly")
 
     early_stop_callback = EarlyStopping(
-        monitor='val_loss',  # Metric to monitor
-        min_delta=0.00,  # Minimum change to qualify as an improvement
-        patience=7,  # Number of epochs with no improvement after which training will be stopped
+        monitor='val_loss',
+        min_delta=0.00,
+        patience=11,
         verbose=True,
-        mode='min'  # Because we want to minimize validation loss
+        mode='min'
     )
 
     results_folder = f"{base_folder}/{MODEL_NAME}/retraining"
