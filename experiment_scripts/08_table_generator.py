@@ -25,8 +25,20 @@ SCENARIO = "user"
 NUM_RUNS = 5
 INCLUDE_CONFIDENCE_INTERVALS = False
 
+
+showing_name_for_table = {
+    "retraining": "Retraining",
+    "finetune": "Finetuning",
+    "neg_grad": "NegGrad",
+    "neg_grad_plus": "NegGrad+",
+    "bad-t": "Bad-T",
+    "scrub": "SCRUB",
+    "trace_hiding": f"TraceHiding({IMPORTANCE})",
+}
+
+
 for method_name, epoch in METHODS_EPOCH.items():
-    print(f"{method_name}", end=" & ")
+    print(f"{showing_name_for_table[method_name]}", end=" & ")
     for sample_size in SAMPLE_SIZES:
         experiment_data = []
         for i in range(NUM_RUNS):
@@ -84,7 +96,8 @@ for method_name, epoch in METHODS_EPOCH.items():
             print(f"\\pm {(ci_results['TA']['plus_minus'])*100:.2f}".rstrip('0').rstrip('.'), end=" ")
         print(" & ", end=" ")
         
-        print(f"{ci_results['MIA_AUC']['mean']:.2f}".rstrip('0').rstrip('.'), end=" ")
+        # print the difference between 0.5 and the auc mean.
+        print(f"{abs(ci_results['MIA_AUC']['mean'] - 0.5) * 100:.2f}".rstrip('0').rstrip('.'), end=" ")
         if INCLUDE_CONFIDENCE_INTERVALS:
             print(f"\\pm {(ci_results['MIA_AUC']['plus_minus']):.2f}".rstrip('0').rstrip('.'), end=" ")
             
