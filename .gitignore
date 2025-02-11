@@ -1,8 +1,10 @@
-/datasets/**
-/experiments/**
+.vscode
+datasets
+experiments
+plots
 wandb
 *.pyc
-analysis/**
+analysis
 experiments-bkb
 
-TULHOR/**
+TULHOR
