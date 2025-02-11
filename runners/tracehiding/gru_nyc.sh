@@ -7,16 +7,16 @@ export LD_LIBRARY_PATH=/usr/local/cuda-12/targets/x86_64-linux/lib/:$LD_LIBRARY_
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate unlearnF
 
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=0
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 2 --batchSize 20  --importance entropy & 
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 11 --batchSize 20  --importance entropy & 
-export CUDA_VISIBLE_DEVICES=6
+export CUDA_VISIBLE_DEVICES=1
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 23 --batchSize 20  --importance entropy & 
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 46 --batchSize 20  --importance entropy &
-export CUDA_VISIBLE_DEVICES=4
+export CUDA_VISIBLE_DEVICES=2
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 2 --batchSize 20 --importance coverage_diversity & 
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 11 --batchSize 20  --importance coverage_diversity & 
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=4
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 23 --batchSize 20  --importance coverage_diversity & 
 python experiment_scripts/05_1_our_method.py --model GRU --dataset HO_NYC_Res9 --scenario user --biased entropy_max --sampleSize 46 --batchSize 20  --importance coverage_diversity &
 export CUDA_VISIBLE_DEVICES=5
