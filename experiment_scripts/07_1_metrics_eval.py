@@ -1,10 +1,11 @@
 import json
 import os
+import re
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utility.evaluationUtils import evaluate_mia_model, get_model_outputs, js_divergence, train_mia_model
+from utility.evaluationUtils import get_model_outputs
 from utility.functions import custom_collate_fn
 from utility.ArguemntParser import get_args
 from torch.utils.data import Subset
@@ -57,7 +58,6 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     remaining_dloader = DataLoader(remaining_dataset, batch_size=1000, collate_fn=custom_collate_fn, num_workers=24)
     test_dloader = DataLoader(test_dataset, batch_size=len(test_dataset), collate_fn=custom_collate_fn, num_workers=24)
     
-        
     if BASELINE_METHOD == "original":
         baseline_model_path = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt"
         results_folder = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/evaluation"
@@ -65,9 +65,17 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         baseline_model_path = f"{base_folder}/{MODEL_NAME}/retraining/retrained_{MODEL_NAME}_model.pt"
         results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
     elif BASELINE_METHOD == "trace_hiding":
+        if not EPOCH_NUM_TO_EVALUATE:
+            unlearning_stats = json.load(open(f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearning_stats-batch_size_{BATCH_SIZE}.json", "r"))
+            max_epoch = max(unlearning_stats.keys())
+            EPOCH_NUM_TO_EVALUATE = int(max_epoch)
         baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
         results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/evaluation"
     else:
+        if not EPOCH_NUM_TO_EVALUATE:
+            unlearning_stats = json.load(open(f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/unlearning_stats-batch_size_{BATCH_SIZE}.json", "r"))
+            max_epoch = max(unlearning_stats.keys())
+            EPOCH_NUM_TO_EVALUATE = int(max_epoch)
         baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
         results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
     

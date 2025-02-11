@@ -16,7 +16,7 @@ def get_args():
         type=str, 
         help="Specify the name of the dataset to be used. Default is 'HO_Geolife_Res8'.",
         nargs='?',  # Makes this argument optional
-        default='Ho_Foursquare_NYC'
+        default='HO_Rome_Res8'
     )
     
     parser.add_argument(
@@ -40,7 +40,7 @@ def get_args():
         type=int,
         help="Specify the batch size for training. Default is 25.",
         nargs='?',  # Makes this argument optional
-        default=25
+        default=20
     )
     
     parser.add_argument(
@@ -81,9 +81,9 @@ def get_args():
     parser.add_argument(
         '--epochIndex', 
         type=int,
-        help="Specify the epoch number for evaluation. Default is 14.",
+        help="Specify the epoch number for evaluation. Default is the last epoch we recorderd.",
         nargs='?',  # Makes this argument optional
-        default=14
+        default=None
     )
 
     parser.add_argument(
