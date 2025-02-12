@@ -34,7 +34,7 @@ command_file="baselines_commands_list.txt"
 failed_commands_log="baselines_failed_commands_list.txt"
 > "$failed_commands_log"
 
-export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # to be used in function (wasted my 2 hours to find this)
+export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
 
 
 execute_and_log_failure() {
