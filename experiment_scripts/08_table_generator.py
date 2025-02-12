@@ -6,19 +6,32 @@ from scipy import stats
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.functions import compute_confidence_interval
 
-DATASET_NAME = "HO_Geolife_Res8"
-BIASED_SAMPLE_IMPORTANCE_NAME = "entropy"
-SAMPLE_SIZES = [1, 2, 3, 4]
+DATASET_NAME = "HO_Rome_Res8"
+SAMPLE_SIZES = [2, 10, 21, 43]
+
+# DATASET_NAME = "HO_Geolife_Res8"
+# SAMPLE_SIZES = [1, 2, 3, 5] 
+
+# DATASET_NAME = "HO_NYC_Res9"
+# SAMPLE_SIZES = [2, 11, 23, 46]
+
+# DATASET_NAME = "HO_Porto_Res8"
+# SAMPLE_SIZES = [4, 21, 43, 88]
+
+
+BIASED_SAMPLE_IMPORTANCE_NAME = "entropy_max"
 MODEL_NAME = "GRU"
 METHODS_EPOCH = {
-    # "retraining": 7,
-    # "finetune": 7,
-    # "neg_grad": 7,
-    # "neg_grad_plus": 7,
-    # "bad-t": 7,
-    # "scrub": 7,
-    "trace_hiding": 7,
+    "retraining": None, # The epoch number for retraining is not important
+    "finetune": None,
+    "neg_grad": None,
+    "neg_grad_plus": None,
+    "bad-t": None,
+    "scrub": None,
+    "trace_hiding": None,
 }
+# IMPORTANCE = "coverage_diversity"
+# IMPORTANCE = "uuniqe"
 IMPORTANCE = "entropy"
 MIA = "xgboost"
 SCENARIO = "user"
@@ -63,7 +76,7 @@ for method_name, epoch in METHODS_EPOCH.items():
         }
         # select the metrics of interest
         for i in range(NUM_RUNS):
-            results["UA"].append(1 - experiment_data[i]["unlearning_dataset"]["accuracy@1"]) # define the unlearning accuracy
+            results["UA"].append(1 - experiment_data[i]["unlearning_dataset"]["accuracy@1"])  # define the unlearning accuracy
             results["RA"].append(experiment_data[i]["remaining_dataset"]["accuracy@1"])
             results["TA"].append(experiment_data[i]["test_dataset"]["accuracy@1"])
             results["MIA_AUC"].append(experiment_data[i]["mia"]["auc_roc"])
