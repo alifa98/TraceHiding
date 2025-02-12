@@ -34,6 +34,8 @@ command_file="baselines_commands_list.txt"
 failed_commands_log="baselines_failed_commands_list.txt"
 > "$failed_commands_log"
 
+export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # to be used in function (wasted my 2 hours to find this)
+
 
 execute_and_log_failure() {
     local slot_id=$1
@@ -44,17 +46,19 @@ execute_and_log_failure() {
     IFS=' ' read -r -a GPUs <<< "$GPUs_STR"
 
     gpu_id=${GPUs[$(( slot_id - 1 ))]}
-    
+
     export LD_LIBRARY_PATH=/usr/local/cuda-12/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH
     source ~/miniconda3/etc/profile.d/conda.sh
     conda activate unlearnF
 
     export CUDA_VISIBLE_DEVICES=$gpu_id
     echo "Running on GPU $gpu_id (Slot ID: $slot_id): $cmd"
-    
-    "$cmd"
-    if [ $? -ne 0 ]; then
-        echo "$cmd" >> "$failed_commands_log"
+
+    eval "$cmd"
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo "Failed: $cmd"
+        echo "$cmd" >> "$FAILD_COMMAND_LIST_FILE" 
     fi
 }
 
@@ -80,7 +84,7 @@ for dataset in "${datasets[@]}"; do
     done
 done
 
-cat "$command_file" | parallel -j$num_gpus --ungroup execute_and_log_failure {%} {}
+cat "$command_file" | parallel -j$num_gpus --ungroup execute_and_log_failure {%} "{}"
 
 
 cd "$ORIGINAL_DIR" || { echo "Failed to return to original directory"; exit 1; }
