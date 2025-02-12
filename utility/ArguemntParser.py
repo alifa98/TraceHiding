@@ -61,7 +61,7 @@ def get_args():
     
     parser.add_argument(
         '--importance', 
-        choices=['entropy', 'coverage_diversity', 'uuniqe', 'frequency'],
+        choices=['entropy', 'coverage_diversity', 'uuniqe', 'frequency'], #TODO: update this
         type=str,
         help="Specify whether to add reaminig data to gradient calculation (NegGrad+). Default is 'False'.",
         nargs='?',  # Makes this argument optional
