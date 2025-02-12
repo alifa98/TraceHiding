@@ -37,6 +37,7 @@ BIASED_SAMPLE_IMPORTANCE_NAME = args.biased # if it is None, then the sample is 
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 # ---------------------------------------------------
+dynamic_epoch_index= EPOCH_NUM_TO_EVALUATE
 
 # Load the dataset
 train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
@@ -68,15 +69,15 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         if not EPOCH_NUM_TO_EVALUATE:
             unlearning_stats = json.load(open(f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearning_stats-batch_size_{BATCH_SIZE}.json", "r"))
             max_epoch = max(unlearning_stats.keys())
-            EPOCH_NUM_TO_EVALUATE = int(max_epoch)
-        baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
+            dynamic_epoch_index = int(max_epoch)
+        baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/unlearned_{MODEL_NAME}_epoch_{dynamic_epoch_index}_batch_{BATCH_SIZE}.pt"
         results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/{IMPORTANCE_NAME}/evaluation"
     else:
         if not EPOCH_NUM_TO_EVALUATE:
             unlearning_stats = json.load(open(f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/unlearning_stats-batch_size_{BATCH_SIZE}.json", "r"))
             max_epoch = max(unlearning_stats.keys())
-            EPOCH_NUM_TO_EVALUATE = int(max_epoch)
-        baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{EPOCH_NUM_TO_EVALUATE}_batch_{BATCH_SIZE}.pt"
+            dynamic_epoch_index = int(max_epoch)
+        baseline_model_path = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/unlearned_{MODEL_NAME}_epoch_{dynamic_epoch_index}_batch_{BATCH_SIZE}.pt"
         results_folder = f"{base_folder}/{MODEL_NAME}/{BASELINE_METHOD}/evaluation"
     
     os.makedirs(results_folder, exist_ok=True)
