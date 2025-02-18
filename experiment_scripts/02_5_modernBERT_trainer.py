@@ -29,17 +29,32 @@ DATASET_NAME = sys.argv[2]
 
 training_configs = {
     "HO_Rome_Res8": {
-        "hidden_size": 128,
+        "hidden_size": 256,
         "number_of_layers": 4,
         "number_of_heads": 4,
         "intermediate_size": 3072,
         "batch_size": 50,
     },
     "HO_Porto_Res8": {
+        "hidden_size": 128,
+        "number_of_layers": 4,
+        "number_of_heads": 4,
+        "intermediate_size": 3072,
+        "batch_size": 100,
     },
     "HO_Geolife_Res8": {
+        "hidden_size": 256,
+        "number_of_layers": 4,
+        "number_of_heads": 4,
+        "intermediate_size": 3072,
+        "batch_size": 10,
     },
     "HO_NYC_Res9": {
+        "hidden_size": 256,
+        "number_of_layers": 4,
+        "number_of_heads": 4,
+        "intermediate_size": 3072,
+        "batch_size": 80,
     }
 }
 
