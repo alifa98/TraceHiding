@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Check if the expected number of arguments is provided
 if len(sys.argv) < 3:
-    print("Usage: python experiment_scripts/02_5_modernBERT_trainer.py <model_type> <dataset_name>")
+    print("Usage: python experiment_scripts/02_5_transformer_trainer.py <model_type> <dataset_name>")
     sys.exit(1)
     
 MODEL_NAME = sys.argv[1]
