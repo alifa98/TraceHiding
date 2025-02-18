@@ -6,13 +6,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import torch
 import json
 import logging
-from transformers import PreTrainedTokenizerFast
+# from transformers import PreTrainedTokenizerFast
 from transformers import ModernBertConfig, ModernBertForSequenceClassification
 from transformers import TrainingArguments, Trainer
-from transformers import DataCollatorWithPadding
 from transformers import EarlyStoppingCallback
-from utility.functions import compute_metrics_bert
-from datasets import load_dataset
+from utility.functions import CustomDataset, compute_metrics_bert, custom_collator_transformer
+import concurrent.futures
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 torch.set_float32_matmul_precision('high')
@@ -34,7 +33,7 @@ training_configs = {
         "number_of_layers": 4,
         "number_of_heads": 4,
         "intermediate_size": 3072,
-        "batch_size": 10,
+        "batch_size": 50,
     },
     "HO_Porto_Res8": {
     },
@@ -55,7 +54,8 @@ EARLY_STOPPING_PATIENCE = 10
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 torch.set_float32_matmul_precision('high')
 
-tokenizer = PreTrainedTokenizerFast.from_pretrained(f"experiments/{DATASET_NAME}/saved_models/ho-sequence-tokenizer")
+# tokenizer = PreTrainedTokenizerFast.from_pretrained(f"experiments/{DATASET_NAME}/saved_models/ho-sequence-tokenizer")
+# We are going to use the tokenizer from the dataset
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
 
@@ -63,25 +63,40 @@ train_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_tr
 test_dataset = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 num_labels = stats["users_size"]
+vocab_size = stats["vocab_size"]
+pad_token_id = 0
 
 def tokenize_function(example):
     seq, label = example[0], example[1]
-    tokens = tokenizer(
-        seq,
-        truncation=True,
-        padding=True,
-        max_length=300
-    )
+    # tokens = tokenizer(
+    #     seq,
+    #     truncation=True,
+    #     padding=True,
+    #     max_length=300
+    # )
+    
+    # The `seq` here is list of IDs so we do not need to tokenize it, so I am going to use the following format to simulate the tokenizer output for a sequence:
+    # and we know that the token ID 0 is the padding and we do not have it in the sequence.
+    tokens = {
+        "input_ids": seq,
+        "attention_mask": [1] * len(seq)
+    }
     tokens["labels"] = label
     return tokens
 
-train_dataset = train_dataset.map(tokenize_function)
-test_dataset = test_dataset.map(tokenize_function)
 
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    train_data = list(executor.map(tokenize_function, train_dataset))
+    test_data = list(executor.map(tokenize_function, test_dataset))
+
+train_dataset = CustomDataset(train_data)
+test_dataset = CustomDataset(test_data)
+  
+  
 if MODEL_NAME == "ModernBERT":
     config = ModernBertConfig(
-        vocab_size=tokenizer.vocab_size,
-        pad_token_id=tokenizer.pad_token_id,
+        vocab_size=vocab_size + 1, # for the padding token
+        pad_token_id=pad_token_id,
         hidden_size=HIDDEN_SIZE,
         num_hidden_layers=NUMBER_OF_HIDDEN_LAYERS,
         num_attention_heads=NUMBER_OF_ATTEN_HEADS,
@@ -91,11 +106,10 @@ if MODEL_NAME == "ModernBERT":
     )
 
     model = ModernBertForSequenceClassification(config)
-elif MODEL_NAME == "Bert":
-    raise NotImplementedError("Bert model is not implemented yet.")
+elif MODEL_NAME == "BERT":
+    raise NotImplementedError("BERT model is not implemented yet.")
 else:
     raise ValueError("Unknown model name")
-
 
 CHECKPOINT_DIR = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/checkpoints"
 
@@ -113,14 +127,13 @@ training_args = TrainingArguments(
     save_total_limit=1, # best and the most recent one (might be the same)
 )
 
-data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=test_dataset,
-    data_collator=data_collator,
+    data_collator=custom_collator_transformer,
     callbacks=[EarlyStoppingCallback(early_stopping_patience=EARLY_STOPPING_PATIENCE)],
     compute_metrics=compute_metrics_bert
 )

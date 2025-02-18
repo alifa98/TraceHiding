@@ -4,6 +4,8 @@ from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 from transformers import PreTrainedTokenizerFast
 
+### Read the training procedure for the BERT and ModernBERT models, we are not using the tokenizer anymore as data is already tokenized.
+
 # DATASET_NAME = "HO_Rome_Res8"
 # DATASET_NAME = "HO_Porto_Res8"
 # DATASET_NAME = "HO_Geolife_Res8"
