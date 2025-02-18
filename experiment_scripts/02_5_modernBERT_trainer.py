@@ -7,7 +7,7 @@ import torch
 import json
 import logging
 # from transformers import PreTrainedTokenizerFast
-from transformers import ModernBertConfig, ModernBertForSequenceClassification
+from transformers import ModernBertConfig, ModernBertForSequenceClassification, BertConfig, BertForSequenceClassification
 from transformers import TrainingArguments, Trainer
 from transformers import EarlyStoppingCallback
 from utility.functions import CustomDataset, compute_metrics_bert, custom_collator_transformer
@@ -119,10 +119,19 @@ if MODEL_NAME == "ModernBERT":
         max_position_embeddings=300, # defined when preprocessing the dataset and having max_length=300
         num_labels=num_labels
     )
-
     model = ModernBertForSequenceClassification(config)
 elif MODEL_NAME == "BERT":
-    raise NotImplementedError("BERT model is not implemented yet.")
+    config = BertConfig(
+        vocab_size=vocab_size + 1, # for the padding token
+        pad_token_id=pad_token_id,
+        hidden_size=HIDDEN_SIZE,
+        num_hidden_layers=NUMBER_OF_HIDDEN_LAYERS,
+        num_attention_heads=NUMBER_OF_ATTEN_HEADS,
+        intermediate_size=INTERMEDIATE_SIZE,
+        max_position_embeddings=300, # defined when preprocessing the dataset and having max_length=300
+        num_labels=num_labels
+    )
+    model = BertForSequenceClassification(config)
 else:
     raise ValueError("Unknown model name")
 
