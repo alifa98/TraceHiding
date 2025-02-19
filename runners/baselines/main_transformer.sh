@@ -51,6 +51,8 @@ execute_and_log_failure() {
     source ~/miniconda3/etc/profile.d/conda.sh
     conda activate unlearnF
 
+    export TORCH_COMPILE_DISABLE=0 # to disable the Triton optimization (the old gpus are not compatible with it)
+
     export CUDA_VISIBLE_DEVICES=$gpu_id
     echo "Running on GPU $gpu_id (Slot ID: $slot_id): $cmd"
 
