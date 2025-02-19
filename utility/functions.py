@@ -1,19 +1,9 @@
 
-import logging
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
-import evaluate
-
-class CustomDataset(Dataset):
-    def __init__(self, data):
-        self.data = data
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return self.data[idx]
+import scipy.stats as stats
+import numpy as np
     
 def custom_collate_fn(batch):
     # a batch is a list of tuples (sequence, label)
@@ -42,42 +32,6 @@ def custom_collator_transformer(batch):
         # "token_type_ids": token_type_ids_padded
     }
     
-import evaluate
-import numpy as np
-import logging
-
-def compute_metrics_bert(eval_pred):
-    """
-    eval_pred is (logits, labels). We'll compute several metrics:
-    Accuracy, Precision, Recall, and F1-score.
-    """
-    accuracy_metric = evaluate.load("accuracy")
-    precision_metric = evaluate.load("precision")
-    recall_metric = evaluate.load("recall")
-    f1_metric = evaluate.load("f1")
-
-    # logging.info("Prediction Evaluation Metrics Initialized")
-
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
-    
-    accuracy = accuracy_metric.compute(predictions=predictions, references=labels)
-    precision = precision_metric.compute(predictions=predictions, references=labels, average="macro", zero_division=1)
-    recall = recall_metric.compute(predictions=predictions, references=labels, average="macro")
-    f1 = f1_metric.compute(predictions=predictions, references=labels, average="macro")
-
-    return {
-        "accuracy": accuracy["accuracy"] if accuracy else None,
-        "precision": precision["precision"] if precision else None,
-        "recall": recall["recall"] if recall else None,
-        "f1": f1["f1"] if f1 else None
-    }
-
-
-
-import numpy as np
-import scipy.stats as stats
-
 def compute_confidence_interval(values, confidence_level=0.95):
     # Calculate the mean
     values = np.array(values)

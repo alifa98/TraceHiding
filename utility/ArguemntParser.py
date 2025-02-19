@@ -5,7 +5,7 @@ def get_args():
 
     parser.add_argument(
         '--model', 
-        choices=['GRU', 'LSTM', 'BERT'], 
+        choices=['GRU', 'LSTM', 'BERT', "ModernBERT"], 
         help="Choose the model type: 'GRU', 'LSTM', or 'BERT'. Default is 'LSTM'.",
         nargs='?',  # Makes this argument optional
         default='LSTM'  # Default value if not provided

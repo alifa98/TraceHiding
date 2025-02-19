@@ -10,7 +10,9 @@ import logging
 from transformers import ModernBertConfig, ModernBertForSequenceClassification, BertConfig, BertForSequenceClassification
 from transformers import TrainingArguments, Trainer
 from transformers import EarlyStoppingCallback
-from utility.functions import CustomDataset, compute_metrics_bert, custom_collator_transformer
+from utility.functions import custom_collator_transformer
+from utility.Dataset import CustomDataset
+from utility.evaluationUtils import compute_metrics
 import concurrent.futures
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5'
@@ -159,7 +161,7 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     data_collator=custom_collator_transformer,
     callbacks=[EarlyStoppingCallback(early_stopping_patience=EARLY_STOPPING_PATIENCE)],
-    compute_metrics=compute_metrics_bert
+    compute_metrics=compute_metrics
 )
 
 # save initial model

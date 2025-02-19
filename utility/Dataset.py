@@ -4,7 +4,6 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset
 
-
 class HexagonTrajectoryUserDataset(Dataset):
     def __init__(self, csv_file, trajectory_col_name="higher_order_trajectory", user_id_col_name='user_id', cell_to_id=None, min_trajectory_length=5, min_num_trajectories=2, split_ratio=0.8, random_state=42):
         """
@@ -98,3 +97,14 @@ class HexagonTrajectoryUserDataset(Dataset):
 
     def get_test_data(self):
         return self.test_data
+    
+
+class CustomDataset(Dataset):
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
