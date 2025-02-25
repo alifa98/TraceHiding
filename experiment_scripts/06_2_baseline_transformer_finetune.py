@@ -46,6 +46,19 @@ FINE_TUNING_LEARNING_RATE = 5*1e-5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# Load the dataset
+train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
+
+def tokenize_function(item):
+        return {"input_ids": item[0], "attention_mask": [1] * len(item[0]), "labels": item[1]}
+    
+with concurrent.futures.ProcessPoolExecutor() as executor:
+    logging.info("Tokenizing Training Data")
+    train_data = list(executor.map(tokenize_function, train_data))
+    logging.info("Tokenizing Test Data")
+    test_data = list(executor.map(tokenize_function, test_data))
+
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     
     wandb.init(
@@ -77,30 +90,19 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     unlearning_indices = torch.load(f"{base_folder}/data/unlearning.indexes.pt", weights_only=False)
     remaining_indices = torch.load(f"{base_folder}/data/remaining.indexes.pt", weights_only=False)
 
-    train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
-    test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
-
     unlearning_dataset = Subset(train_data, unlearning_indices)
     remaining_dataset = Subset(train_data, remaining_indices)
 
     # select the random portion of the remaining data for fine-tuning
     remaining_dataset = Subset(remaining_dataset, torch.randperm(len(remaining_dataset))[:int(PORTION_OF_FINE_TUNING_DATA * len(remaining_dataset))].tolist())
     
-    def tokenize_function(item):
-        return {"input_ids": item[0], "attention_mask": [1] * len(item[0]), "labels": item[1]}
-    
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        unlearning_dataset = list(executor.map(tokenize_function, unlearning_dataset))
-        remaining_dataset = list(executor.map(tokenize_function, remaining_dataset))
-        test_data = list(executor.map(tokenize_function, test_data))
-
     unlearning_dataset = CustomDataset(unlearning_dataset)
     remaining_dataset = CustomDataset(remaining_dataset)
-    test_data = CustomDataset(test_data)
+    test_dataset = CustomDataset(test_data)
     
-    unlearning_dloader = DataLoader(unlearning_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=24)
-    remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=24)
-    test_dloader = DataLoader(test_data, batch_size=len(test_data), collate_fn=custom_collator_transformer, num_workers=24)
+    unlearning_dloader = DataLoader(unlearning_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
+    remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
+    test_dloader = DataLoader(test_dataset, batch_size=len(test_dataset), collate_fn=custom_collator_transformer, num_workers=48)
 
     # Load the original models stats
     original_model_stats = json.load(open(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.json", "r"))
