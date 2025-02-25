@@ -11,22 +11,23 @@ sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 
 biases=("entropy_max")
 models=("GRU" "LSTM")
-
 datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8") #"HO_Porto_Res8"
 importances=("entropy" "coverage_diversity")
 methods=("retraining" "finetune" "neg_grad" "neg_grad_plus" "bad-t" "scrub" "trace_hiding")
 
 # Available GPUs
-GPUs=(0 1 2 4 5 6 7)
+GPUs=(5)
 num_gpus=${#GPUs[@]}
 export GPUs_STR="${GPUs[*]}"
 
+log_dir="cmd_logs"
+mkdir -p "$log_dir"
+timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 # File to store commands
-command_file="evals_commands_list.txt"
+command_file="$log_dir/eval_rnn_commands_list_$timestamp.txt"
 > "$command_file"
-
 # File to log failed commands
-failed_commands_log="evals_failed_commands_list.txt"
+failed_commands_log="$log_dir/eval_rnn_failed_commands_list_$timestamp.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -68,14 +69,14 @@ for dataset in "${datasets[@]}"; do
                     if [[ "$method" == "trace_hiding" ]]; then
                         # If method is trace_hiding, include importance
                         for importance in "${importances[@]}"; do
-                            cmd="python experiment_scripts/07_1_metrics_eval.py \
+                            cmd="python experiment_scripts/07_2_mia_xgboost.py \
                                 --model $model --dataset $dataset --scenario user \
                                 --method $method --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
                             echo "$cmd" >> "$command_file"
                         done
                     else
                         # Otherwise, exclude the importance argument
-                        cmd="python experiment_scripts/07_1_metrics_eval.py \
+                        cmd="python experiment_scripts/07_2_mia_xgboost.py \
                             --model $model --dataset $dataset --scenario user \
                             --method $method --sampleSize $sampleSize --biased $bias --batchSize 20"
                         echo "$cmd" >> "$command_file"

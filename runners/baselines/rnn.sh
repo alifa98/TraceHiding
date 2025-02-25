@@ -10,15 +10,15 @@ sample_sizes["HO_Geolife_Res8"]="1 2 3 5"
 sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 
 biases=("entropy_max")
-models=("BERT" "ModernBERT")
+models=("GRU" "LSTM")
 datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8")
 
 scripts=(
-    "finetune:06_2_baseline_transformer_finetune.py"
-    "neggrad:06_3_baseline_transformer_neggrad.py"
-    "neggrad_plus:06_3_baseline_transformer_neggrad.py:--plus:True"
-    "badt:06_4_baseline_transformer_badt.py"
-    "scrub:06_5_baseline_transformer_scrub.py"
+    "finetune:06_2_baseline_finetune.py"
+    "neggrad:06_3_baseline_neggrad.py"
+    "neggrad_plus:06_3_baseline_neggrad.py:--plus:True"
+    "badt:06_4_baseline_badt.py"
+    "scrub:06_5_baseline_scrub.py"
 )
 
 # Available GPUs
@@ -26,12 +26,14 @@ GPUs=(0 1 2 4 5 6 7)
 num_gpus=${#GPUs[@]}
 export GPUs_STR="${GPUs[*]}"
 
+log_dir="cmd_logs"
+mkdir -p "$log_dir"
+timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 # File to store commands
-command_file="baselines_tf_commands_list.txt"
+command_file="$log_dir/baselines_rnn_commands_list_$timestamp.txt"
 > "$command_file"
-
 # File to log failed commands
-failed_commands_log="baselines_tf_failed_commands_list.txt"
+failed_commands_log="$log_dir/baselines_rnn_failed_commands_list_$timestamp.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -50,8 +52,6 @@ execute_and_log_failure() {
     export LD_LIBRARY_PATH=/usr/local/cuda-12/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH
     source ~/miniconda3/etc/profile.d/conda.sh
     conda activate unlearnF
-
-    export TORCH_COMPILE_DISABLE=0 # to disable the Triton optimization (the old gpus are not compatible with it)
 
     export CUDA_VISIBLE_DEVICES=$gpu_id
     echo "Running on GPU $gpu_id (Slot ID: $slot_id): $cmd"

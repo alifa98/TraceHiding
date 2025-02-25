@@ -10,28 +10,22 @@ sample_sizes["HO_Geolife_Res8"]="1 2 3 5"
 sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 
 biases=("entropy_max")
-models=("GRU" "LSTM")
+models=("BERT" "ModernBERT")
 datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8")
-
-scripts=(
-    "finetune:06_2_baseline_finetune.py"
-    "neggrad:06_3_baseline_neggrad.py"
-    "neggrad_plus:06_3_baseline_neggrad.py:--plus:True"
-    "badt:06_4_baseline_badt.py"
-    "scrub:06_5_baseline_scrub.py"
-)
+importances=("entropy" "coverage_diversity")
+methods=("retraining" "finetune" "neg_grad" "neg_grad_plus" "bad-t" "scrub" "trace_hiding")
 
 # Available GPUs
-GPUs=(0 1 2 4 5 6 7)
+GPUs=(1 2 4 5 6 7)
 num_gpus=${#GPUs[@]}
 export GPUs_STR="${GPUs[*]}"
 
 # File to store commands
-command_file="baselines_commands_list.txt"
+command_file="eval_tf_commands_list.txt"
 > "$command_file"
 
 # File to log failed commands
-failed_commands_log="baselines_failed_commands_list.txt"
+failed_commands_log="eval_tf_failed_commands_list.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -51,6 +45,8 @@ execute_and_log_failure() {
     source ~/miniconda3/etc/profile.d/conda.sh
     conda activate unlearnF
 
+    export TORCH_COMPILE_DISABLE=0 # to disable the Triton optimization (the old gpus are not compatible with it)
+
     export CUDA_VISIBLE_DEVICES=$gpu_id
     echo "Running on GPU $gpu_id (Slot ID: $slot_id): $cmd"
 
@@ -69,15 +65,22 @@ for dataset in "${datasets[@]}"; do
     for bias in "${biases[@]}"; do
         for sampleSize in ${sample_sizes[$dataset]}; do
             for model in "${models[@]}"; do
-                for script_entry in "${scripts[@]}"; do
-                    IFS=':' read -ra parts <<< "$script_entry"
-                    script_file="${parts[1]}"
-                    script_args="${parts[@]:2}"
-                    
-                    cmd="python experiment_scripts/$script_file $script_args \
-                        --model $model --dataset $dataset --scenario user \
-                        --sampleSize $sampleSize --biased $bias --batchSize 20"
-                    echo "$cmd" >> "$command_file"
+                for method in "${methods[@]}"; do
+                    if [[ "$method" == "trace_hiding" ]]; then
+                        # If method is trace_hiding, include importance
+                        for importance in "${importances[@]}"; do
+                            cmd="python experiment_scripts/07_1_metrics_eval_transformer.py \
+                                --model $model --dataset $dataset --scenario user \
+                                --method $method --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
+                            echo "$cmd" >> "$command_file"
+                        done
+                    else
+                        # Otherwise, exclude the importance argument
+                        cmd="python experiment_scripts/07_1_metrics_eval_transformer.py \
+                            --model $model --dataset $dataset --scenario user \
+                            --method $method --sampleSize $sampleSize --biased $bias --batchSize 20"
+                        echo "$cmd" >> "$command_file"
+                    fi
                 done
             done
         done
