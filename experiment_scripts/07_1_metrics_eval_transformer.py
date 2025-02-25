@@ -64,7 +64,7 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
     logging.info("Tokenizing Training Data")
     train_data = list(executor.map(tokenize_function, train_data))
     logging.info("Tokenizing Test Data")
-    test_data = list(executor.map(tokenize_function, test_data), total=len(test_data), desc="Tokenizing test data"))
+    test_data = list(executor.map(tokenize_function, test_data))
 
 for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     
