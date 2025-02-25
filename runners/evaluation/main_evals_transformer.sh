@@ -10,22 +10,23 @@ sample_sizes["HO_Geolife_Res8"]="1 2 3 5"
 sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 
 biases=("entropy_max")
-models=("GRU" "LSTM")
-datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8")
+models=("BERT") # "ModernBERT"
+
+datasets=("HO_Rome_Res8") #"HO_Porto_Res8" "HO_NYC_Res9" "HO_Geolife_Res8"
 importances=("entropy" "coverage_diversity")
 methods=("retraining" "finetune" "neg_grad" "neg_grad_plus" "bad-t" "scrub" "trace_hiding")
 
 # Available GPUs
-GPUs=(0 1 2 4 5 6 7)
+GPUs=(1 2 4 5 6 7)
 num_gpus=${#GPUs[@]}
 export GPUs_STR="${GPUs[*]}"
 
 # File to store commands
-command_file="evals_commands_list.txt"
+command_file="evals_tf_commands_list.txt"
 > "$command_file"
 
 # File to log failed commands
-failed_commands_log="evals_failed_commands_list.txt"
+failed_commands_log="evals_tf_failed_commands_list.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -44,6 +45,8 @@ execute_and_log_failure() {
     export LD_LIBRARY_PATH=/usr/local/cuda-12/targets/x86_64-linux/lib/:$LD_LIBRARY_PATH
     source ~/miniconda3/etc/profile.d/conda.sh
     conda activate unlearnF
+
+    export TORCH_COMPILE_DISABLE=0 # to disable the Triton optimization (the old gpus are not compatible with it)
 
     export CUDA_VISIBLE_DEVICES=$gpu_id
     echo "Running on GPU $gpu_id (Slot ID: $slot_id): $cmd"
@@ -67,14 +70,14 @@ for dataset in "${datasets[@]}"; do
                     if [[ "$method" == "trace_hiding" ]]; then
                         # If method is trace_hiding, include importance
                         for importance in "${importances[@]}"; do
-                            cmd="python experiment_scripts/07_1_metrics_eval.py \
+                            cmd="python experiment_scripts/07_1_metrics_eval_transformer.py \
                                 --model $model --dataset $dataset --scenario user \
                                 --method $method --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
                             echo "$cmd" >> "$command_file"
                         done
                     else
                         # Otherwise, exclude the importance argument
-                        cmd="python experiment_scripts/07_1_metrics_eval.py \
+                        cmd="python experiment_scripts/07_1_metrics_eval_transformer.py \
                             --model $model --dataset $dataset --scenario user \
                             --method $method --sampleSize $sampleSize --biased $bias --batchSize 20"
                         echo "$cmd" >> "$command_file"
