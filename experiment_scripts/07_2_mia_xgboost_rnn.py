@@ -161,6 +161,8 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     # plt.savefig(f"{results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf", bbox_inches='tight', format='pdf')
     # print(f"ROC Curve saved at: {results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
     
+    logging.info(f"Membership Inference Attack metrics are saved in: {results_folder}/metrics_xgboost_mia_epoch_{EPOCH_NUM_TO_EVALUATE}.json")
+    
     if BASELINE_METHOD == 'original':
         # Do not repeat for the REPETITIONS_OF_EACH_SAMPLE_SIZE times.
         break

@@ -188,6 +188,7 @@ model_params = {
     "hidden_size": HIDDEN_SIZE,
     "number_of_layers": NUMBER_OF_HIDDEN_LAYERS,
     "number_of_heads": NUMBER_OF_ATTEN_HEADS,
+    "intermediate_size": INTERMEDIATE_SIZE,
     "batch_size": BATCH_SIZE,
     "trained_epochs": trainer.state.epoch,
     "test_result": test_results,

@@ -10,8 +10,8 @@ sample_sizes["HO_Geolife_Res8"]="1 2 3 5"
 sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 
 biases=("entropy_max")
-models=("BERT" "ModernBERT")
-datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8")
+models=("BERT") # "ModernBERT"
+datasets=("HO_Rome_Res8") # "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8"
 
 scripts=(
     "finetune:06_2_baseline_transformer_finetune.py"
@@ -22,7 +22,7 @@ scripts=(
 )
 
 # Available GPUs
-GPUs=(0 1 2 4 5 6 7)
+GPUs=(5 5)
 num_gpus=${#GPUs[@]}
 export GPUs_STR="${GPUs[*]}"
 
