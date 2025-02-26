@@ -74,11 +74,12 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     unlearning_dataset = CustomDataset(unlearning_dataset)
     remaining_dataset = CustomDataset(remaining_dataset)
     test_dataset = CustomDataset(test_data)
-    unlearning_dloader = DataLoader(unlearning_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
-    remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
-    test_dloader = DataLoader(test_dataset, batch_size=len(test_data), collate_fn=custom_collator_transformer, num_workers=48)
+    unlearning_dloader = DataLoader(unlearning_dataset, batch_size=500, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
+    remaining_dloader = DataLoader(remaining_dataset, batch_size=500, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
+    test_dloader = DataLoader(test_dataset, batch_size=500, collate_fn=custom_collator_transformer, num_workers=48)
     
-        
+    logging.info(f"Data Loaders are ready for sample {i}")
+    
     if BASELINE_METHOD == "original":
         baseline_model_path = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt"
         results_folder = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/evaluation"
@@ -109,12 +110,18 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     else:
         raise ValueError("Model name is not correct")
     
+    logging.info(f"Model is loaded from: {baseline_model_path}")
+    
     baseline_model.eval()
     baseline_model.to(device)
     
+    logging.info(f"Getting model outputs for Membership Inference Attack")
     logits_unlearning, _ = get_model_outputs(baseline_model, unlearning_dloader, device)
+    logging.info(f"Unlearning data logits are ready")
     logits_test, _ = get_model_outputs(baseline_model, test_dloader, device)
+    logging.info(f"Test data logits are ready")
     logits_remaining, _ = get_model_outputs(baseline_model, remaining_dloader, device)
+    logging.info(f"Remaining data logits are ready")
     
     labels_unlearning = torch.zeros(logits_unlearning.shape[0]).to(device)
     labels_test = torch.zeros(logits_test.shape[0]).to(device)
@@ -132,15 +139,21 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
+    logging.info("Data is ready for training the Membership Inference Attack model")
     # Undersample the training data
     undersampler = RandomUnderSampler(random_state=42)
     X_train_res, y_train_res = undersampler.fit_resample(X_train_scaled, y_train)
+    
+    logging.info("Data is undersampled for training the Membership Inference Attack model")
 
     # Train an XGBoost model for membership inference attack
     xgb_model = xgb.XGBClassifier(eval_metric='logloss', random_state=42, device='cuda')
     logging.info("Training XGBoost model for Membership Inference Attack")
     xgb_model.fit(X_train_res, y_train_res)
-    logging.info("Training is done")
+    
+    logging.info("Membership Inference Attack model is trained")
+    
+    logging.info("Evaluating Membership Inference Attack model")
     
     # Predict membership for validation set
     y_pred_probs = xgb_model.predict_proba(X_test)[:, 1]  # Probability of being a member (label=1)

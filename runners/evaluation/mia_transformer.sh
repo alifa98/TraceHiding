@@ -24,10 +24,10 @@ log_dir="cmd_logs"
 mkdir -p "$log_dir"
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 # File to store commands
-command_file="$log_dir/mia_tf_commands_list_$timestamp.txt"
+command_file="$log_dir/mia_tf_cmds_${timestamp}.txt"
 > "$command_file"
 # File to log failed commands
-failed_commands_log="$log_dir/mia_tf_failed_commands_list_$timestamp.txt"
+failed_commands_log="$log_dir/mia_tf_cmds_${timestamp}_failed.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -71,16 +71,12 @@ for dataset in "${datasets[@]}"; do
                     if [[ "$method" == "trace_hiding" ]]; then
                         # If method is trace_hiding, include importance
                         for importance in "${importances[@]}"; do
-                            cmd="python experiment_scripts/07_2_mia_xgboost_transformer.py \
-                                --model $model --dataset $dataset --scenario user \
-                                --method $method --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
+                            cmd="python experiment_scripts/07_2_mia_xgboost_transformer.py --model $model --dataset $dataset --scenario user --method $method --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
                             echo "$cmd" >> "$command_file"
                         done
                     else
                         # Otherwise, exclude the importance argument
-                        cmd="python experiment_scripts/07_2_mia_xgboost_transformer.py \
-                            --model $model --dataset $dataset --scenario user \
-                            --method $method --sampleSize $sampleSize --biased $bias --batchSize 20"
+                        cmd="python experiment_scripts/07_2_mia_xgboost_transformer.py --model $model --dataset $dataset --scenario user --method $method --sampleSize $sampleSize --biased $bias --batchSize 20"
                         echo "$cmd" >> "$command_file"
                     fi
                 done

@@ -23,10 +23,10 @@ log_dir="cmd_logs"
 mkdir -p "$log_dir"
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 # File to store commands
-command_file="$log_dir/tracehiding_tf_commands_list_$timestamp.txt"
+command_file="$log_dir/tracehiding_tf_cmds_${timestamp}.txt"
 > "$command_file"
 # File to log failed commands
-failed_commands_log="$log_dir/tracehiding_tf_failed_commands_list_$timestamp.txt"
+failed_commands_log="$log_dir/tracehiding_tf_cmds_${timestamp}_failed.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -67,9 +67,7 @@ for dataset in "${datasets[@]}"; do
         for sampleSize in ${sample_sizes[$dataset]}; do
             for model in "${models[@]}"; do
                 for importance in "${importances[@]}"; do
-                    cmd="python experiment_scripts/05_2_tracehiding_transformer.py \
-                        --model $model --dataset $dataset --scenario user \
-                        --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
+                    cmd="python experiment_scripts/05_2_tracehiding_transformer.py --model $model --dataset $dataset --scenario user --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
                     echo "$cmd" >> "$command_file"
                 done
             done

@@ -189,8 +189,8 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
         epoch_stats["epoch_time"] = end_epoch_time - start_epoch_time
         
-        unlearning_eval_results = compute_metrics(get_model_outputs(student, unlearning_dloader, device))
-        test_eval_results = compute_metrics(get_model_outputs(student, test_dloader, device))
+        unlearning_eval_results = compute_metrics(get_model_outputs(student, DataLoader(unlearning_dataset, batch_size=700, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48), device))
+        test_eval_results = compute_metrics(get_model_outputs(student, DataLoader(test_dataset, batch_size=700, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48), device))
         
         unlearning_data_accuracy = unlearning_eval_results['accuracy_1']
         
