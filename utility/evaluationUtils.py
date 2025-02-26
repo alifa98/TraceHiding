@@ -116,6 +116,14 @@ def compute_metrics(eval_pred):
     
     logits, labels = eval_pred
     
+    # Check and convert logits to tensor if necessary
+    if not isinstance(logits, torch.Tensor):
+        logits = torch.tensor(logits)
+        
+    # Check and convert labels to tensor if necessary
+    if not isinstance(labels, torch.Tensor):
+        labels = torch.tensor(labels)
+    
     # Get Top-1 Predictions
     predictions = torch.argmax(logits, dim=-1)
 

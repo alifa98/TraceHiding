@@ -48,16 +48,18 @@ torch.set_float32_matmul_precision('high')
 
 os.makedirs(f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/", exist_ok=True)
 
-train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
-test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
 stats = json.load(open(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_stats.json", "r"))
 num_labels = stats["users_size"]
 vocab_size = stats["vocab_size"]
 pad_token_id = 0
 
+# Load the dataset
+train_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_train.pt", weights_only=False)
+test_data = torch.load(f"experiments/{DATASET_NAME}/splits/{DATASET_NAME}_test.pt", weights_only=False)
+
 def tokenize_function(item):
         return {"input_ids": item[0], "attention_mask": [1] * len(item[0]), "labels": item[1]}
-
+    
 with concurrent.futures.ProcessPoolExecutor() as executor:
     logging.info("Tokenizing Training Data")
     train_data = list(executor.map(tokenize_function, train_data))
