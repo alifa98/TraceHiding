@@ -108,7 +108,6 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
     # Load initial model as the bad teacher
     MODEL_PATH = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt"
-    INITIAL_MODEL_PATH = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/initial_{MODEL_NAME}_model.pt"
     if MODEL_NAME == "ModernBERT":
         smart_teacher = ModernBertForSequenceClassification.from_pretrained(MODEL_PATH)
         student = ModernBertForSequenceClassification.from_pretrained(MODEL_PATH)

@@ -11,6 +11,10 @@ class EntropyImportance(ImportanceCalculator):
         self.dataset_size = len(dataset)
         self.dataset_bigram_counts = Counter()
         
+        if self.data_format == "transformer":
+            #the data is for transformer models thus the input is list of dicts
+            dataset = [(item["input_ids"], item["labels"]) for item in dataset]
+        
         for sequence, uesr_id in tqdm(dataset, desc="Calculating dataset bigram counts"):
             bigrams = self.get_bigrams(sequence)
             self.dataset_bigram_counts.update(bigrams)
@@ -32,7 +36,14 @@ class EntropyImportance(ImportanceCalculator):
         return [(sequence[i], sequence[i + 1]) for i in range(len(sequence) - 1)]
 
     def calculate_importance(self, batch):
-        sequences, user_ids = batch
+        
+        if self.data_format == "transformer":
+            #the data is for transformer models thus the input is list of dicts
+            sequences = [item["input_ids"] for item in batch]
+        else:
+            #the data is for non-transformer models thus the input is list of tuples
+            sequences, user_ids = batch
+            
         # Calculate entropy for each sequence in the batch
         batch_entropies = []
         for seq in sequences:

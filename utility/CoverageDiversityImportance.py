@@ -10,6 +10,10 @@ class CoverageDiversityImportance(ImportanceCalculator):
         
         self.sequnce_diversity = []
         
+        if self.data_format == "transformer":
+            #the data is for transformer models thus the input is list of dicts
+            dataset = [(item["input_ids"], item["labels"]) for item in dataset]
+        
         for sequence, uesr_id in tqdm(dataset, desc="Calculating dataset unique hexagons"):
             self.total_unique_hexagons.update(sequence)
             
@@ -23,7 +27,14 @@ class CoverageDiversityImportance(ImportanceCalculator):
         
 
     def calculate_importance(self, batch):
-        sequences, user_ids = batch
+        
+        if self.data_format == "transformer":
+            #the data is for transformer models thus the input is list of dicts
+            sequences = [item["input_ids"] for item in batch]
+        else:
+            #the data is for non-transformer models thus the input is list of tuples
+            sequences, user_ids = batch
+            
         # the number of unique hexagons each sequence has
         batch_importance = []
         for seq in sequences:
