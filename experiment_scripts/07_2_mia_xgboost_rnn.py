@@ -100,29 +100,35 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     y = np.concatenate([labels_remaining.cpu(), labels_unlearning.cpu(), labels_test.cpu()])
     
     
+    # Split the data first to avoid data leakage
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+    # Scale the training data and then transform the test data
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.3, random_state=42, stratify=y)
-    
-    # Train an XGBoost model for membership inference attack
-    xgb_model = xgb.XGBClassifier(eval_metric='logloss', random_state=42, n_jobs=24)
-    xgb_model.fit(X_train, y_train)
-    
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Undersample the training data
     undersampler = RandomUnderSampler(random_state=42)
-    X_train_res, y_train_res = undersampler.fit_resample(X_train, y_train)
+    X_train_res, y_train_res = undersampler.fit_resample(X_train_scaled, y_train)
+
+    # Train an XGBoost model for membership inference attack
+    xgb_model = xgb.XGBClassifier(eval_metric='logloss', random_state=42, device='cuda')
+    logging.info("Training XGBoost model for Membership Inference Attack")
+    xgb_model.fit(X_train_res, y_train_res)
+    logging.info("Training is done")
     
     
     # Predict membership for validation set
-    y_pred_probs = xgb_model.predict_proba(X_val)[:, 1]  # Probability of being a member (label=1)
+    y_pred_probs = xgb_model.predict_proba(X_test)[:, 1]  # Probability of being a member (label=1)
     y_pred_labels = (y_pred_probs >= 0.5).astype(int)    # Thresholding at 0.5
     
     # Calculate Metrics
-    auc_roc = roc_auc_score(y_val, y_pred_probs)
-    accuracy = accuracy_score(y_val, y_pred_labels)
-    precision = precision_score(y_val, y_pred_labels)
-    recall = recall_score(y_val, y_pred_labels)
-    f1 = f1_score(y_val, y_pred_labels)
+    auc_roc = roc_auc_score(y_test, y_pred_probs)
+    accuracy = accuracy_score(y_test, y_pred_labels)
+    precision = precision_score(y_test, y_pred_labels)
+    recall = recall_score(y_test, y_pred_labels)
+    f1 = f1_score(y_test, y_pred_labels)
 
     save_dict = {
         'auc_roc': auc_roc,
