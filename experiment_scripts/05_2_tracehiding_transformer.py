@@ -172,17 +172,18 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             student_forget_output = student(**inputs_unlearning)
 
             unlearning_loss = F.kl_div(
-                F.log_softmax(y_hat_unlearning, dim=1),
-                F.log_softmax(student_forget_output, dim=1), reduction='none', log_target=True
+                F.log_softmax(y_hat_unlearning.logits, dim=1),
+                F.log_softmax(student_forget_output.logits, dim=1), reduction='none', log_target=True
             ).sum(dim=1)
             
-            batch_importance = torch.Tensor(importance_calculator.calculate_importance(unlearning_batch)).to(device)
-            exp_weighted_importance = torch.exp(batch_importance) - 1
+            with torch.no_grad():
+                batch_importance = torch.Tensor(importance_calculator.calculate_importance(unlearning_batch)).to(device)
+                exp_weighted_importance = torch.exp(batch_importance) - 1
 
             # Weight the loss by the exponentially weighted importance
-            weighted_loss = unlearning_loss * exp_weighted_importance
+            weighted_unlearning_loss = unlearning_loss * exp_weighted_importance
             
-            loss = -1 * torch.clamp(unlearning_loss.mean(), min=0.0) # negative of the unlearning loss
+            loss = -1 * torch.clamp(weighted_unlearning_loss.mean(), min=0.0) # negative of the unlearning loss
             loss.backward()
             optimizer.step()
             total_epoch_loss += loss.item()
@@ -192,11 +193,11 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
             # doing the min step
             student_remember_output = student(**inputs_remaining)
             remembering_loss = F.kl_div(
-                F.log_softmax(y_hat_remaining, dim=1),
-                F.log_softmax(student_remember_output, dim=1), reduction='none', log_target=True
+                F.log_softmax(y_hat_remaining.logits, dim=1),
+                F.log_softmax(student_remember_output.logits, dim=1), reduction='none', log_target=True
             ).sum(dim=1)
 
-            cross_entropy_loss = F.cross_entropy(student_remember_output, labels_remaining)
+            cross_entropy_loss = F.cross_entropy(student_remember_output.logits, labels_remaining)
             
             loss = ALPHA * torch.clamp(remembering_loss.mean(), min=0.0) + GAMMA * cross_entropy_loss
 
