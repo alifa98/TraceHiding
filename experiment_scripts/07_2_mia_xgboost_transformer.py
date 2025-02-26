@@ -1,9 +1,11 @@
 import json
 import os
 import sys
-
+from matplotlib import pyplot as plt
+import seaborn as sns
+from sklearn.discriminant_analysis import StandardScaler
+from sklearn.model_selection import train_test_split
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 from utility.evaluationUtils import get_model_outputs
 from utility.ArguemntParser import get_args
 from torch.utils.data import Subset
@@ -18,10 +20,12 @@ import concurrent.futures
 import logging
 import torch
 import json
-from torchmetrics import Accuracy, Precision, Recall, F1Score
+from imblearn.under_sampling import RandomUnderSampler
+import numpy as np
+import xgboost as xgb
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score, roc_curve
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5'
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # Helps with debugging CUDA errors
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_float32_matmul_precision('high')
 
@@ -39,7 +43,6 @@ SAMPLE_SIZE =args.sampleSize
 BATCH_SIZE = args.batchSize
 EPOCH_NUM_TO_EVALUATE = args.epochIndex
 BIASED_SAMPLE_IMPORTANCE_NAME = args.biased # if it is None, then the sample is not biased
-
 REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 
 # ---------------------------------------------------
@@ -66,19 +69,16 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
 
     unlearning_indices = torch.load(f"{base_folder}/data/unlearning.indexes.pt", weights_only=False)
     remaining_indices = torch.load(f"{base_folder}/data/remaining.indexes.pt", weights_only=False)
-
     unlearning_dataset = Subset(train_data, unlearning_indices)
     remaining_dataset = Subset(train_data, remaining_indices)
-
     unlearning_dataset = CustomDataset(unlearning_dataset)
     remaining_dataset = CustomDataset(remaining_dataset)
     test_dataset = CustomDataset(test_data)
-    
     unlearning_dloader = DataLoader(unlearning_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
     remaining_dloader = DataLoader(remaining_dataset, batch_size=BATCH_SIZE, collate_fn=custom_collator_transformer, shuffle=True, num_workers=48)
     test_dloader = DataLoader(test_dataset, batch_size=len(test_data), collate_fn=custom_collator_transformer, num_workers=48)
-
     
+        
     if BASELINE_METHOD == "original":
         baseline_model_path = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/full_trained_{MODEL_NAME}_model.pt"
         results_folder = f"experiments/{DATASET_NAME}/saved_models/{MODEL_NAME}/evaluation"
@@ -112,66 +112,77 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     baseline_model.eval()
     baseline_model.to(device)
     
-    output_unlearning, unlearnin_true_labels = get_model_outputs(baseline_model, unlearning_dloader, device)
-    output_remaining, remaining_true_labels = get_model_outputs(baseline_model, remaining_dloader, device)
-    output_test, test_true_labels = get_model_outputs(baseline_model, test_dloader, device)
+    logits_unlearning, _ = get_model_outputs(baseline_model, unlearning_dloader, device)
+    logits_test, _ = get_model_outputs(baseline_model, test_dloader, device)
+    logits_remaining, _ = get_model_outputs(baseline_model, remaining_dloader, device)
     
-        
-    # Assuming output_unlearning and output_test are logits
-    accuracy_at_1 = Accuracy(task='multiclass', num_classes=int(dataset_stats['users_size']), top_k=1).to(device)
-    accuracy_at_3 = Accuracy(task='multiclass', num_classes=int(dataset_stats['users_size']), top_k=3).to(device)
-    accuracy_at_5 = Accuracy(task='multiclass', num_classes=int(dataset_stats['users_size']), top_k=5).to(device)
-    precision = Precision(task='multiclass', num_classes=int(dataset_stats['users_size']), average='weighted').to(device)
-    recall = Recall(task='multiclass', num_classes=int(dataset_stats['users_size']), average='weighted').to(device)
-    f1_score = F1Score(task='multiclass', num_classes=int(dataset_stats['users_size']), average='weighted').to(device)
+    labels_unlearning = torch.zeros(logits_unlearning.shape[0]).to(device)
+    labels_test = torch.zeros(logits_test.shape[0]).to(device)
+    labels_remaining = torch.ones(logits_remaining.shape[0]).to(device)
     
-    metrics = {}
-    metrics['unlearning_dataset'] = {
-        'accuracy@1': accuracy_at_1(torch.argmax(output_unlearning, dim=-1), unlearnin_true_labels).item(),
-        'accuracy@3': accuracy_at_3(output_unlearning, unlearnin_true_labels).item(),
-        'accuracy@5': accuracy_at_5(output_unlearning, unlearnin_true_labels).item(),
-        'precision': precision(torch.argmax(output_unlearning, dim=-1), unlearnin_true_labels).item(),
-        'recall': recall(torch.argmax(output_unlearning, dim=-1), unlearnin_true_labels).item(),
-        'f1_score': f1_score(torch.argmax(output_unlearning, dim=-1), unlearnin_true_labels).item()
+    X = np.vstack([logits_remaining.cpu(), logits_unlearning.cpu(), logits_test.cpu()])
+    y = np.concatenate([labels_remaining.cpu(), labels_unlearning.cpu(), labels_test.cpu()])
+    
+    
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42, stratify=y)
+    
+    undersampler = RandomUnderSampler(random_state=42)
+    X_train_res, y_train_res = undersampler.fit_resample(X_train, y_train)
+    
+    # Train an XGBoost model for membership inference attack
+    xgb_model = xgb.XGBClassifier(eval_metric='logloss', random_state=42, n_jobs=48)
+    xgb_model.fit(X_train_res, y_train_res)
+    
+    # Predict membership for validation set
+    y_pred_probs = xgb_model.predict_proba(X_test)[:, 1]  # Probability of being a member (label=1)
+    y_pred_labels = (y_pred_probs >= 0.5).astype(int)    # Thresholding at 0.5
+    
+    # Calculate Metrics
+    auc_roc = roc_auc_score(y_test, y_pred_probs)
+    accuracy = accuracy_score(y_test, y_pred_labels)
+    precision = precision_score(y_test, y_pred_labels)
+    recall = recall_score(y_test, y_pred_labels)
+    f1 = f1_score(y_test, y_pred_labels)
+
+    save_dict = {
+        'auc_roc': auc_roc,
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1
     }
     
-    # reset the metrics
-    accuracy_at_1.reset()
-    accuracy_at_3.reset()
-    accuracy_at_5.reset()
-    precision.reset()
-    recall.reset()
-    f1_score.reset()
-    
-    metrics['test_dataset'] = {
-        'accuracy@1': accuracy_at_1(torch.argmax(output_test, dim=-1), test_true_labels).item(),
-        'accuracy@3': accuracy_at_3(output_test, test_true_labels).item(),
-        'accuracy@5': accuracy_at_5(output_test, test_true_labels).item(),
-        'precision': precision(torch.argmax(output_test, dim=-1), test_true_labels).item(),
-        'recall': recall(torch.argmax(output_test, dim=-1), test_true_labels).item(),
-        'f1_score': f1_score(torch.argmax(output_test, dim=-1), test_true_labels).item()
-    }
-    
-    # reset the metrics
-    accuracy_at_1.reset()
-    accuracy_at_3.reset()
-    accuracy_at_5.reset()
-    precision.reset()
-    recall.reset()
-    f1_score.reset()
-    
-    metrics['remaining_dataset'] = {
-        'accuracy@1': accuracy_at_1(torch.argmax(output_remaining, dim=-1), remaining_true_labels).item(),
-        'accuracy@3': accuracy_at_3(output_remaining, remaining_true_labels).item(),
-        'accuracy@5': accuracy_at_5(output_remaining, remaining_true_labels).item(),
-        'precision': precision(torch.argmax(output_remaining, dim=-1), remaining_true_labels).item(),
-        'recall': recall(torch.argmax(output_remaining, dim=-1), remaining_true_labels).item(),
-        'f1_score': f1_score(torch.argmax(output_remaining, dim=-1), remaining_true_labels).item()
-    }
-    
-    json.dump(metrics, open(f"{results_folder}/metrics_performance_epoch_{EPOCH_NUM_TO_EVALUATE}.json", "w"), indent=4)
-    
-    print(f"Metrics for sample_{i} are saved in {results_folder}/metrics_performance_epoch_{EPOCH_NUM_TO_EVALUATE}.json")
+    json.dump(save_dict, open(f"{results_folder}/metrics_xgboost_mia_epoch_{EPOCH_NUM_TO_EVALUATE}.json", "w"), indent=4)
+
+    # conf_matrix = confusion_matrix(y_val, y_pred_labels)
+    # # Plot confusion matrix
+    # plt.figure(figsize=(6, 4))
+    # sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Greens', xticklabels=['Non-member', 'Member'], yticklabels=['Non-member', 'Member'], cbar=False)
+    # plt.title('Confusion Matrix')
+    # plt.ylabel('True Label')
+    # plt.xlabel('Predicted Label')
+    # plt.savefig(f"{results_folder}/confusion_matrix_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf", bbox_inches='tight', format='pdf')
+    # print(f"Confusion Matrix saved at: {results_folder}/confusion_matrix_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
+
+    # # ROC Curve
+    # fpr, tpr, _ = roc_curve(y_val, y_pred_probs)
+    # roc_auc = auc(fpr, tpr)
+
+    # # Plot ROC Curve
+    # plt.figure(figsize=(6, 4))
+    # plt.plot(fpr, tpr, color='blue', label=f'ROC curve (area = {roc_auc:.4f})')
+    # plt.plot([0, 1], [0, 1], color='grey', linestyle='--')  # Diagonal line for random guessing
+    # plt.xlim([0.0, 1.0])
+    # plt.ylim([0.0, 1.05])
+    # plt.xlabel('False Positive Rate')
+    # plt.ylabel('True Positive Rate')
+    # plt.title('Receiver Operating Characteristic (ROC) Curve')
+    # plt.legend(loc="lower right")
+    # plt.savefig(f"{results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf", bbox_inches='tight', format='pdf')
+    # print(f"ROC Curve saved at: {results_folder}/roc_curve_epoch_{EPOCH_NUM_TO_EVALUATE}.pdf")
     
     if BASELINE_METHOD == 'original':
         # Do not repeat for the REPETITIONS_OF_EACH_SAMPLE_SIZE times.

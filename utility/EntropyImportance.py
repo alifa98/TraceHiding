@@ -39,7 +39,7 @@ class EntropyImportance(ImportanceCalculator):
         
         if self.data_format == "transformer":
             #the data is for transformer models thus the input is list of dicts
-            sequences = [item["input_ids"] for item in batch]
+            sequences = batch["input_ids"]
         else:
             #the data is for non-transformer models thus the input is list of tuples
             sequences, user_ids = batch
