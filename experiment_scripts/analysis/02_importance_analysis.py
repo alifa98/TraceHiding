@@ -69,45 +69,59 @@ data = pd.DataFrame({
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Plotting a density plot for overall importance scores
-plt.figure(figsize=(18, 4))
+columns = ['length', 'entropy', 'coverage', 'user_uniqueness']
+colors = ['red', 'green', 'blue', 'purple']
 
-# plot in 4 subplots
-plt.subplot(1, 4, 1)
+plt.figure(figsize=(20, 4))
 
-sns.kdeplot(data['length'], fill=True, label='Length of Trajectory Importance', common_norm=False, color='red')
-plt.title(f'Length of Trajectory importance')
-plt.xlabel('Importance Score')
-plt.ylabel('Density')
-# plt.legend()
+for i, (col, color) in enumerate(zip(columns, colors), 1):
+    plt.subplot(1, 4, i)
+    
+    # KDE plot
+    sns.kdeplot(data[col], fill=True, common_norm=False, color=color)
+    
+    # Calculate mean and median
+    mean_val = data[col].mean()
+    median_val = data[col].median()
+    
+    # Plot mean and median lines
+    plt.axvline(mean_val, color='black', linestyle='--', linewidth=1.5, label=f'Mean: {mean_val:.2f}')
+    plt.axvline(median_val, color='orange', linestyle='-', linewidth=1.5, label=f'Median: {median_val:.2f}')
+    
+    plt.title(f'{col.capitalize()} Importance')
+    plt.xlabel('Importance Score')
+    plt.ylabel('Density')
+    plt.legend()
 
-plt.subplot(1, 4, 2)
-sns.kdeplot(data['entropy'], fill=True, label='Entropy Importance', common_norm=False, color='green')
-plt.title(f'Entropy importance')
-plt.xlabel('Importance Score')
-plt.ylabel('Density')
-# plt.legend()
-
-plt.subplot(1, 4, 3)
-sns.kdeplot(data['coverage'], fill=True, label='Coverage Diversity Importance', common_norm=False, color='blue')
-plt.title(f'Coverage Diversity importance')
-plt.xlabel('Importance Score')
-plt.ylabel('Density')
-# plt.legend()
-
-plt.subplot(1, 4, 4)
-sns.kdeplot(data['user_uniqueness'], fill=True, label='User Uniqueness Importance', common_norm=False, color='purple')
-plt.title(f'User Uniqueness importance')
-plt.xlabel('Importance Score')
-plt.ylabel('Density')
-# plt.legend()
-
-# Automatically adjust subplots to prevent overlap
 plt.tight_layout()
+plt.savefig(f"analysis/{DATASET_NAME}/importance_analysis/annotated_importances_density_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
+plt.show()
 
-plt.savefig(f"analysis/{DATASET_NAME}/importance_analysis/importances_density_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
-print(f"Saved importance plot to analysis/{DATASET_NAME}/importance_analysis/importances_density_{DATASET_NAME.lower()}.pdf")
+print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/annotated_importances_density_{DATASET_NAME.lower()}.pdf")
+
+
+
+# ---- Correlation Heatmap ----
+plt.figure(figsize=(8, 6))
+corr_matrix = data[columns].corr()
+
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
+plt.title('Correlation Heatmap of Importance Scores')
+plt.tight_layout()
+plt.savefig(f"analysis/{DATASET_NAME}/importance_analysis/correlation_heatmap_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+
+print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/correlation_heatmap_{DATASET_NAME.lower()}.pdf")
+
+# ---- Pair Plot ----
+pair_plot = sns.pairplot(data[columns], kind='scatter', diag_kind='kde', corner=True)
+pair_plot.fig.suptitle('Pairwise Scatter Plots of Importance Scores', y=1.02)
+pair_plot.savefig(f"analysis/{DATASET_NAME}/importance_analysis/pair_plot_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+
+print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/pair_plot_{DATASET_NAME.lower()}.pdf")
 
 
 # Plotting density plots for each user (Randomly sample 10 users to visualize)
