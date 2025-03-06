@@ -116,7 +116,8 @@ plt.show()
 print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/correlation_heatmap_{DATASET_NAME.lower()}.pdf")
 
 # ---- Pair Plot ----
-pair_plot = sns.pairplot(data[columns], kind='scatter', diag_kind='kde', corner=True)
+## Kind: scatter, kde, hist
+pair_plot = sns.pairplot(data[columns], kind='kde', diag_kind='kde', corner=True, plot_kws={'fill': True, 'color': 'darkcyan'}, diag_kws={'fill': True, 'color': 'green'})
 pair_plot.fig.suptitle('Pairwise Scatter Plots of Importance Scores', y=1.02)
 pair_plot.savefig(f"analysis/{DATASET_NAME}/importance_analysis/pair_plot_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
 plt.show()
