@@ -107,8 +107,12 @@ print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/
 plt.figure(figsize=(8, 6))
 corr_matrix = data[columns].corr()
 
-sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
-plt.title('Correlation Heatmap of Importance Scores')
+# Create a mask to hide only the upper triangle (excluding the diagonal)
+mask = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
+
+# Plot the heatmap with the mask
+sns.heatmap(corr_matrix, mask=mask, annot=True, cmap='YlGn', fmt='.2f', linewidths=0.5)
+# plt.title('Correlation Heatmap of Importance Scores')
 plt.tight_layout()
 plt.savefig(f"analysis/{DATASET_NAME}/importance_analysis/correlation_heatmap_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
 plt.show()
@@ -118,7 +122,7 @@ print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/
 # ---- Pair Plot ----
 ## Kind: scatter, kde, hist
 pair_plot = sns.pairplot(data[columns], kind='kde', diag_kind='kde', corner=True, plot_kws={'fill': True, 'color': 'darkcyan'}, diag_kws={'fill': True, 'color': 'green'})
-pair_plot.fig.suptitle('Pairwise Scatter Plots of Importance Scores', y=1.02)
+# pair_plot.fig.suptitle('Pairwise Scatter Plots of Importance Scores', y=1.02)
 pair_plot.savefig(f"analysis/{DATASET_NAME}/importance_analysis/pair_plot_{DATASET_NAME.lower()}.pdf", bbox_inches='tight', format='pdf')
 plt.show()
 
