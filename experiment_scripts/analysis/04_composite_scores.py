@@ -115,7 +115,7 @@ def combined_objective(coefs):
     
     # Combined objective: maximize variance, minimize skewness and kurtosis
     # Adjust weights (w1, w2, w3) as needed
-    w1, w2, w3 = 0.2, 0.5, 0.3
+    w1, w2, w3 = 1/3, 1/3, 1/3
     return -(w1 * variance + w2 * abs(skewness) + w3 * excess_kurtosis)
 
 
@@ -123,10 +123,10 @@ def combined_objective(coefs):
 # Constraints: coefficients sum to 1
 constraints = {'type': 'eq', 'fun': lambda coefs: sum(coefs) - 1}
 # Bounds: coefficients between 0 and 1
-bounds = [(0, 1), (0, 1), (0, 1)]
+bounds = [(0.1, 1), (0.1, 1), (0.1, 1)]
 
 # Initial guess
-initial_guess = [1/2, 1/4, 1/4]
+initial_guess = [1/3, 1/3, 1/3]
 
 
 # Define entropy function
@@ -148,18 +148,25 @@ S_composite_optimized = alpha_optimized * S1 + beta_optimized * S2 + gamma_optim
 # Plot density of scores and composite score
 plt.figure(figsize=(12, 8))
 
-sns.kdeplot(S1, label=r"$\xi_{entropy}$", linewidth=2)
-sns.kdeplot(S2, label=r"$\xi_{coverage}$", linewidth=2)
-sns.kdeplot(S3, label=r"$\xi_{length}$", linewidth=2)
-sns.kdeplot(S_composite_optimized, label="Combined Score", linewidth=2, linestyle="--")
+sns.kdeplot(S1, label=r"$\xi_{entropy}$", linewidth=3)
+sns.kdeplot(S2, label=r"$\xi_{coverage}$", linewidth=3)
+sns.kdeplot(S3, label=r"$\xi_{length}$", linewidth=3)
+sns.kdeplot(S_composite_optimized, label="Combined Score", linewidth=3, linestyle="--")
 
-title = ("Density Comparison of Individual Scores and Combined Score \n"
+title = (#"Density Comparison of Individual Scores and Combined Score \n"
          r"$\alpha = {:.2f}, \beta = {:.2f}, \gamma = {:.2f}$".format(alpha_optimized, beta_optimized, gamma_optimized))
-plt.title(title, fontsize=16)
-plt.xlabel("Importance Score", fontsize=14)
-plt.ylabel("Density", fontsize=14)
-plt.legend(fontsize=12)
-plt.grid(alpha=0.4)
+plt.title(title, fontsize=30)
+plt.xlabel("Importance Score", fontsize=25)
+# plt.ylabel("Density", fontsize=20)
+plt.ylabel("")
+# plt.legend(fontsize=25)
+## Thicken the axies:
+ax = plt.gca()
+ax.spines['bottom'].set_linewidth(2)
+ax.spines['top'].set_linewidth(2)
+ax.spines['left'].set_linewidth(2)
+ax.spines['right'].set_linewidth(2)
+    
 plt.savefig(f"analysis/{DATASET_NAME}/score_optimize/single_score_density_{DATASET_NAME.lower()}.pdf", bbox_inches='tight')
 print(f"Saved score density plot to analysis/{DATASET_NAME}/score_optimize/single_score_density_{DATASET_NAME.lower()}.pdf")
 
