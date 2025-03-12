@@ -14,11 +14,11 @@ models=("GRU" "LSTM")
 datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8")
 
 scripts=(
-    "finetune:06_2_baseline_finetune.py"
-    "neggrad:06_3_baseline_neggrad.py"
-    "neggrad_plus:06_3_baseline_neggrad.py:--plus:True"
-    "badt:06_4_baseline_badt.py"
-    "scrub:06_5_baseline_scrub.py"
+    "finetune:06_2_baseline_rnn_finetune.py"
+    "neggrad:06_3_baseline_rnn_neggrad.py"
+    "neggrad_plus:06_3_baseline_rnn_neggrad.py:--plus:True"
+    "badt:06_4_baseline_rnn_badt.py"
+    "scrub:06_5_baseline_rnn_scrub.py"
 )
 
 # Available GPUs
