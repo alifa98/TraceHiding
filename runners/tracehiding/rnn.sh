@@ -10,12 +10,12 @@ sample_sizes["HO_Geolife_Res8"]="1 2 3 5"
 sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 
 biases=("entropy_max")
-models=("BERT") # "BERT" "ModernBERT"
-datasets=("HO_Rome_Res8") # "HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8"
+models=("LSTM" "GRU") # "LSTM" "GRU"
+datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8") # "HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8"
 importances=("entropy" "coverage_diversity")
 
 # Available GPUs
-GPUs=(5 5)
+GPUs=(0 1 2 4 6 7)
 num_gpus=${#GPUs[@]}
 export GPUs_STR="${GPUs[*]}"
 
@@ -23,10 +23,10 @@ log_dir="cmd_logs"
 mkdir -p "$log_dir"
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 # File to store commands
-command_file="$log_dir/tracehiding_tf_cmds_${timestamp}.txt"
+command_file="$log_dir/tracehiding_rnn_cmds_${timestamp}.txt"
 > "$command_file"
 # File to log failed commands
-failed_commands_log="$log_dir/tracehiding_tf_cmds_${timestamp}_failed.txt"
+failed_commands_log="$log_dir/tracehiding_rnn_cmds_${timestamp}_failed.txt"
 > "$failed_commands_log"
 
 export FAILD_COMMAND_LIST_FILE="$failed_commands_log" # To be used in function (wasted 2 hours to find this bug)
@@ -67,7 +67,7 @@ for dataset in "${datasets[@]}"; do
         for sampleSize in ${sample_sizes[$dataset]}; do
             for model in "${models[@]}"; do
                 for importance in "${importances[@]}"; do
-                    cmd="python experiment_scripts/05_2_tracehiding_transformer.py --model $model --dataset $dataset --scenario user --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
+                    cmd="python experiment_scripts/05_1_tracehiding_rnn.py --model $model --dataset $dataset --scenario user --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
                     echo "$cmd" >> "$command_file"
                 done
             done
