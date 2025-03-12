@@ -65,7 +65,7 @@ for dataset in "${datasets[@]}"; do
     for bias in "${biases[@]}"; do
         for sampleSize in ${sample_sizes[$dataset]}; do
             for model in "${models[@]}"; do
-                cmd="python experiment_scripts/04_1_rnn_retrainer.py --model $model --dataset $dataset --scenario user --sampleSize $sampleSize" # --biased $bias"
+                cmd="python experiment_scripts/04_1_rnn_retrainer.py --model $model --dataset $dataset --scenario user --sampleSize $sampleSize --biased $bias"
                 echo "$cmd" >> "$command_file"
             done
         done
