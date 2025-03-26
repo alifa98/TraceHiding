@@ -69,14 +69,14 @@ for dataset in "${datasets[@]}"; do
                     if [[ "$method" == "trace_hiding" ]]; then
                         # If method is trace_hiding, include importance
                         for importance in "${importances[@]}"; do
-                            cmd="python experiment_scripts/07_2_mia_xgboost.py \
+                            cmd="python experiment_scripts/07_2_mia_xgboost_rnn.py \
                                 --model $model --dataset $dataset --scenario user \
                                 --method $method --sampleSize $sampleSize --biased $bias --batchSize 20 --importance $importance"
                             echo "$cmd" >> "$command_file"
                         done
                     else
                         # Otherwise, exclude the importance argument
-                        cmd="python experiment_scripts/07_2_mia_xgboost.py \
+                        cmd="python experiment_scripts/07_2_mia_xgboost_rnn.py \
                             --model $model --dataset $dataset --scenario user \
                             --method $method --sampleSize $sampleSize --biased $bias --batchSize 20"
                         echo "$cmd" >> "$command_file"
