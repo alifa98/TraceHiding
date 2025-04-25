@@ -30,11 +30,11 @@ DATASET_NAME = sys.argv[2]
 
 training_configs = {
     "HO_Rome_Res8": {
-        "embedding_size": 256,
-        "hidden_size": 128,
-        "number_of_layers": 3,
-        "dropout": 0.15,
-        "batch_size": 10,
+        "embedding_size": 512,
+        "hidden_size": 256,
+        "number_of_layers": 2,
+        "dropout": 0.3,
+        "batch_size": 25,
     },
     "HO_Porto_Res8": {
         "embedding_size": 1024,
