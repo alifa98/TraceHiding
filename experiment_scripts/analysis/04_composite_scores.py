@@ -145,27 +145,32 @@ alpha_optimized, beta_optimized, gamma_optimized = result_optimized.x
 # Composite score using entropy-optimized weights
 S_composite_optimized = alpha_optimized * S1 + beta_optimized * S2 + gamma_optimized * S3
 
+import matplotlib as mpl
+mpl.rcParams["axes.labelsize"] = 35
+mpl.rcParams["xtick.labelsize"] = 30
+mpl.rcParams["ytick.labelsize"] = 30
+
 # Plot density of scores and composite score
 plt.figure(figsize=(12, 8))
 
-sns.kdeplot(S1, label=r"$\xi_{entropy}$", linewidth=3)
-sns.kdeplot(S2, label=r"$\xi_{coverage}$", linewidth=3)
-sns.kdeplot(S3, label=r"$\xi_{length}$", linewidth=3)
-sns.kdeplot(S_composite_optimized, label="Combined Score", linewidth=3, linestyle="--")
+sns.kdeplot(S1, label=r"$\xi_{entropy}$", linewidth=5)
+sns.kdeplot(S2, label=r"$\xi_{coverage}$", linewidth=5)
+sns.kdeplot(S3, label=r"$\xi_{length}$", linewidth=5)
+sns.kdeplot(S_composite_optimized, label=r"$\xi_{unified}$", linewidth=5, linestyle="--")
 
 title = (#"Density Comparison of Individual Scores and Combined Score \n"
          r"$\alpha = {:.2f}, \beta = {:.2f}, \gamma = {:.2f}$".format(alpha_optimized, beta_optimized, gamma_optimized))
-plt.title(title, fontsize=30)
-plt.xlabel("Importance Score", fontsize=25)
-# plt.ylabel("Density", fontsize=20)
-plt.ylabel("")
-# plt.legend(fontsize=25)
+plt.title(title, fontsize=35)
+plt.xlabel("Importance Score")
+# plt.ylabel("Density")
+# plt.ylabel("")
+plt.legend(fontsize=25)
 ## Thicken the axies:
 ax = plt.gca()
-ax.spines['bottom'].set_linewidth(2)
-ax.spines['top'].set_linewidth(2)
-ax.spines['left'].set_linewidth(2)
-ax.spines['right'].set_linewidth(2)
+ax.spines['bottom'].set_linewidth(4)
+ax.spines['top'].set_linewidth(4)
+ax.spines['left'].set_linewidth(4)
+ax.spines['right'].set_linewidth(4)
     
 plt.savefig(f"analysis/{DATASET_NAME}/score_optimize/single_score_density_{DATASET_NAME.lower()}.pdf", bbox_inches='tight')
 print(f"Saved score density plot to analysis/{DATASET_NAME}/score_optimize/single_score_density_{DATASET_NAME.lower()}.pdf")
