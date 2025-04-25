@@ -67,15 +67,18 @@ data = pd.DataFrame({
 
 
 import seaborn as sns
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
 columns = ['length', 'entropy', 'coverage', 'user_uniqueness']
+notations = [r'$\xi_{length}(x)$', r'$\xi_{entropy}(x)$', r'$\xi_{coverage}(x)$', r'$\xi_{unique}(x)$']
 colors = ['red', 'green', 'blue', 'purple']
 
 plt.figure(figsize=(20, 4))
-
-for i, (col, color) in enumerate(zip(columns, colors), 1):
+mpl.rcParams["xtick.labelsize"] = 20
+mpl.rcParams["ytick.labelsize"] = 20
+for i, (col, color, notation) in enumerate(zip(columns, colors, notations), 1):
     plt.subplot(1, 4, i)
     
     # KDE plot
@@ -89,9 +92,9 @@ for i, (col, color) in enumerate(zip(columns, colors), 1):
     plt.axvline(mean_val, color='black', linestyle='--', linewidth=1.5, label=f'Mean: {mean_val:.2f}')
     plt.axvline(median_val, color='orange', linestyle='-', linewidth=1.5, label=f'Median: {median_val:.2f}')
     
-    plt.title(f'{col.capitalize()} Importance', fontsize=25)
-    plt.xlabel('Importance Score', fontsize=20)
-    plt.ylabel('Density', fontsize=20)
+    plt.title(f'{notation} Distribution', fontsize=25)
+    plt.xlabel('Importance Score', fontsize=24)
+    plt.ylabel('Density', fontsize=24)
     plt.legend(prop={"size":18})
     
     # Thicken the axies:
@@ -139,23 +142,28 @@ print(f"The Plot has been saved to: analysis/{DATASET_NAME}/importance_analysis/
 
 ## -- New Idea: combine both pair and heatmap for correlation because both have redundant empty upper trianlge ----
 import pandas as pd
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 plt.figure(figsize=(8, 6))
-mpl.rcParams["axes.labelsize"] = 20
+mpl.rcParams["axes.labelsize"] = 25
+mpl.rcParams["xtick.labelsize"] = 20
+mpl.rcParams["ytick.labelsize"] = 20
+
 
 def hide_current_axis(*args, **kwds):
     plt.gca().set_visible(False)
-    
-pairwise_corr_plot = sns.pairplot(data[columns], kind='kde', diag_kind='kde', plot_kws={'fill': True, 'color': 'darkcyan'}, diag_kws={'fill': True, 'color': 'green'})
+   
+# change labels to the mathematical notations
+new_data = data.rename(columns=dict(zip(columns, notations)))
+
+pairwise_corr_plot = sns.pairplot(new_data[notations], vars=notations,  kind='kde', diag_kind='kde', plot_kws={'fill': True, 'color': 'darkcyan'}, diag_kws={'fill': True, 'color': 'green'})
 pairwise_corr_plot.map_upper(hide_current_axis)
 (xmin, _), (_, ymax) = pairwise_corr_plot.axes[0, 0].get_position().get_points()
 (_, ymin), (xmax, _) = pairwise_corr_plot.axes[-1, -1].get_position().get_points()
 ax = pairwise_corr_plot.fig.add_axes([xmin, ymin, xmax - xmin, ymax - ymin], facecolor='none')
 
-corr_matrix = data[columns].corr()
+corr_matrix = new_data[notations].corr()
 mask = np.tril(np.ones_like(corr_matrix, dtype=bool))
 sns.heatmap(corr_matrix,  mask=mask, cmap='YlGn', fmt='.2f',
             linewidths=.5, cbar=False, annot=True, annot_kws={'size': 20}, ax=ax)
