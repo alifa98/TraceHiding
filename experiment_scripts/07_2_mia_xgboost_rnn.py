@@ -7,7 +7,7 @@ from sklearn.discriminant_analysis import StandardScaler
 from sklearn.model_selection import train_test_split
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.ArguemntParser import get_args
-from utility.evaluationUtils import evaluate_mia_model, get_model_outputs, js_divergence, train_mia_model
+from utility.evaluationUtils import get_model_outputs, js_divergence
 from utility.functions import custom_collate_fn
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
