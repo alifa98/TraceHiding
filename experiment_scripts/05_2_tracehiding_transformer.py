@@ -14,11 +14,11 @@ import concurrent.futures
 from utility.ImportanceCalculator import ImportanceCalculator
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
-from utility.UserUniquenessImportance import UserUniquenessImportance
+from utility.LengthImportance import TrajectoryLengthImportance
+from utility.UnifiedImportance import UnifiedImportance
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
-import torch.optim as optim
 import logging
 import torch
 import time
@@ -47,6 +47,13 @@ INITIAL_LEARNING_RATE = 1e-4
 ALPHA = 0.9
 GAMMA = 0.1
 
+# the order is coverage, entropy, length
+unified_importance_scores = {
+    "HO_Geolife_Res8": [0.8, 0.1, 0.1],
+    "HO_NYC_Res9": [0.1, 0.8, 0.1],
+    "HO_Rome_Res8": [0.64, 0.26, 0.1],
+}
+
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
 
@@ -70,6 +77,8 @@ if IMPORTANCE_NAME == "entropy":
     importance_calculator = EntropyImportance(data_format="transformer")
 elif IMPORTANCE_NAME == "coverage_diversity":
     importance_calculator = CoverageDiversityImportance(data_format="transformer")
+elif IMPORTANCE_NAME == "unified":
+        importance_calculator = UnifiedImportance([CoverageDiversityImportance(data_format="transformer"), EntropyImportance(data_format="transformer"), TrajectoryLengthImportance(data_format="transformer")], unified_importance_scores[DATASET_NAME])
 else:
     importance_calculator = ImportanceCalculator(data_format="transformer")
 importance_calculator.prepare(train_data + test_data)

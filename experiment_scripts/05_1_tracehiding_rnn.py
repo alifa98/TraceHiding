@@ -6,7 +6,7 @@ from utility.functions import check_stopping_criteria, custom_collate_fn
 from utility.ImportanceCalculator import ImportanceCalculator
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
-from utility.UserUniquenessImportance import UserUniquenessImportance
+
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -38,6 +38,13 @@ REPETITIONS_OF_EACH_SAMPLE_SIZE = 5
 INITIAL_LEARNING_RATE = 1e-4
 ALPHA = 0.9
 GAMMA = 0.1
+
+# the order is coverage, entropy, length
+unified_importance_scores = {
+    "HO_Geolife_Res8": [0.8, 0.1, 0.1],
+    "HO_NYC_Res9": [0.1, 0.8, 0.1],
+    "HO_Rome_Res8": [0.64, 0.26, 0.1],
+}
 
 # ------------------------------------- END CONFIGURATIONS -------------------------------------#
 
@@ -85,8 +92,8 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         importance_calculator = EntropyImportance()
     elif IMPORTANCE_NAME == "coverage_diversity":
         importance_calculator = CoverageDiversityImportance()
-    elif IMPORTANCE_NAME == "uuniqe":
-        importance_calculator = UserUniquenessImportance()
+    elif IMPORTANCE_NAME == "unified":
+        importance_calculator = UnifiedImportance([CoverageDiversityImportance(), EntropyImportance(), TrajectoryLengthImportance()], unified_importance_scores[DATASET_NAME])
     else:
         importance_calculator = ImportanceCalculator()
     importance_calculator.prepare(train_data + test_data)
@@ -197,7 +204,7 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
         unlearning_stats[unlearning_epoch] = epoch_stats
         
         # Stop Unlearning at this epoch
-        if check_stopping_criteria(original_test_accuracy, unlearning_data_accuracy, delta=0.001):
+        if check_stopping_criteria(original_test_accuracy, unlearning_data_accuracy, delta=0):
             logging.info(f"Unlearning stopped early at epoch {unlearning_epoch} for sample size {SAMPLE_SIZE}, no. {i}")
             break
         
