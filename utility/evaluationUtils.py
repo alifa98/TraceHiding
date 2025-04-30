@@ -52,18 +52,20 @@ def train_nn_mia_model(mia_data_loader, in_feature_size, device):
         def __init__(self):
             super(MIA, self).__init__()
             self.model = torch.nn.Sequential(
-                torch.nn.Linear(in_feature_size, 100),
+                torch.nn.Linear(in_feature_size, in_feature_size//3),
                 torch.nn.ReLU(),
-                torch.nn.Linear(100, 1),
+                torch.nn.Linear(in_feature_size//3, 1),
+                torch.nn.Sigmoid()
             )
         
         def forward(self, x):
             return self.model(x)
     
     mia_model = MIA().to(device)
-    class_weights = get_class_weights(mia_data_loader.dataset.tensors[1])
-    loss_fn =  torch.nn.BCEWithLogitsLoss(pos_weight=class_weights[1])
-    optimizer = torch.optim.Adam(mia_model.parameters(), lr=0.001)
+    # class_weights = get_class_weights(mia_data_loader.dataset.tensors[1])
+    # loss_fn =  torch.nn.BCEWithLogitsLoss(pos_weight=class_weights[1])
+    loss_fn = torch.nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(mia_model.parameters(), lr=0.1e-4)
     
     # early stopping with patience of 5 epochs
     best_loss = float('inf')
@@ -89,13 +91,9 @@ def train_nn_mia_model(mia_data_loader, in_feature_size, device):
         else:
             no_improvement += 1
             
-        if no_improvement >= 5:
+        if no_improvement >= 10:
             logging.info(f"Early stopping at epoch {epoch + 1}, Best Loss: {best_loss}")
             break
-        
-        ## training data accuracy
-        train_acc = evaluate_mia_model(mia_model, mia_data_loader, device)
-        logging.info(f"Epoch {epoch + 1}, Training Accuracy: {train_acc}")        
         
     final_model = MIA().to(device)
     final_model.load_state_dict(best_model)
