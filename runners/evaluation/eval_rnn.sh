@@ -23,7 +23,7 @@ export GPUs_STR="${GPUs[*]}"
 
 log_dir="cmd_logs"
 mkdir -p "$log_dir"
-timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
+timestamp=$(date +"%Y-%m-%d_%s")
 # File to store commands
 command_file="$log_dir/eval_rnn_cmds_${timestamp}.txt"
 > "$command_file"
