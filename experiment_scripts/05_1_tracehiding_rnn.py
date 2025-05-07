@@ -6,7 +6,8 @@ from utility.functions import check_stopping_criteria, custom_collate_fn
 from utility.ImportanceCalculator import ImportanceCalculator
 from utility.EntropyImportance import EntropyImportance
 from utility.CoverageDiversityImportance import CoverageDiversityImportance
-
+from utility.UnifiedImportance import UnifiedImportance
+from utility.LengthImportance import TrajectoryLengthImportance
 from torch.nn import functional as F
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
