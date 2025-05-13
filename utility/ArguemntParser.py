@@ -89,6 +89,7 @@ def get_args():
     parser.add_argument(
         '--biased',
         type=str,
+        choices=["entropy_max"],
         help="Specify the name of the biased importance. Default is None.",
         nargs='?',  # Makes this argument optional
         default=None
