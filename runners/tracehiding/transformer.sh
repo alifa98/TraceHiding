@@ -12,7 +12,7 @@ sample_sizes["HO_Porto_Res8"]="4 21 43 88"
 biases=("entropy_max")
 models=("ModernBERT") # "BERT" "ModernBERT"
 datasets=("HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8") # "HO_Rome_Res8" "HO_NYC_Res9" "HO_Geolife_Res8" "HO_Porto_Res8"
-importances=("entropy" "coverage_diversity")
+importances=("unified") #"entropy" "coverage_diversity" "unified"
 
 # Available GPUs
 GPUs=(0 1 2 4 6 7)

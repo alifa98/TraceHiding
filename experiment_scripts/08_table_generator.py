@@ -3,6 +3,9 @@ import os
 import sys
 import numpy as np
 from scipy import stats
+import logging
+logging.basicConfig(level=logging.INFO)
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utility.functions import compute_confidence_interval
 
@@ -30,9 +33,9 @@ METHODS_EPOCH = {
     "scrub": None,
     "trace_hiding": None,
 }
-IMPORTANCE = "coverage_diversity"
-# IMPORTANCE = "uuniqe"
 # IMPORTANCE = "entropy"
+# IMPORTANCE = "coverage_diversity"
+IMPORTANCE = "unified"
 MIA = "lr" # "lr" or "xgboost"
 SCENARIO = "user"
 NUM_RUNS = 5
