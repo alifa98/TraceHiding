@@ -112,20 +112,17 @@ for i in range(REPETITIONS_OF_EACH_SAMPLE_SIZE):
     baseline_model.eval()
     baseline_model.to(device)
     
-    logging.info(f"Getting model outputs for Membership Inference Attack")
     logits_unlearning, _ = get_model_outputs(baseline_model, unlearning_dloader, device)
-    logging.info(f"Unlearning data logits are ready")
-    logits_test, _ = get_model_outputs(baseline_model, test_dloader, device)
-    logging.info(f"Test data logits are ready")
+    # logits_test, _ = get_model_outputs(baseline_model, test_dloader, device)
     logits_remaining, _ = get_model_outputs(baseline_model, remaining_dloader, device)
-    logging.info(f"Remaining data logits are ready")
     
     labels_unlearning = torch.zeros(logits_unlearning.shape[0]).to(device)
-    labels_test = torch.zeros(logits_test.shape[0]).to(device)
+    # labels_test = torch.zeros(logits_test.shape[0]).to(device)
     labels_remaining = torch.ones(logits_remaining.shape[0]).to(device)
     
-    X = np.vstack([logits_remaining.cpu(), logits_unlearning.cpu(), logits_test.cpu()])
-    y = np.concatenate([labels_remaining.cpu(), labels_unlearning.cpu(), labels_test.cpu()])
+    X = np.vstack([logits_remaining.cpu(), logits_unlearning.cpu()])
+    y = np.concatenate([labels_remaining.cpu(), labels_unlearning.cpu()])
+    
     
     # Split the data first to avoid data leakage
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
