@@ -21,7 +21,7 @@ sample_index_to_percentage = {0: "1", 1: "5", 2: "10", 3: "20"}
 
 models = ["GRU", "LSTM", "BERT", "ModernBERT"]
 
-BIASED_SAMPLE_IMPORTANCE_NAME = None
+BIASED_SAMPLE_IMPORTANCE_NAME = None # "entropy_max" or None
 METHODS_EPOCH = {
     "retraining": None,
     "finetune": None,
@@ -64,7 +64,7 @@ header = [
     "TA_n",
     "MIA_delta_mean",
     "MIA_delta_pm",
-    "MIA_n"
+    "MIA_n",
     "Time",  # Time taken for the experiments
     "Time_pm",
     "Time_n",  # Number of runs for the time
@@ -103,7 +103,7 @@ for dataset in datasets:
     SAMPLE_SIZES = dataset["sample_sizes"]
 
     for model_name in models:
-        for method_name, epoch in METHODS_EPOCH.items():
+        for method_name, eval_epoch in METHODS_EPOCH.items():
             # For trace_hiding, iterate over importances; otherwise, just once
             importances = trace_hiding_importances if method_name == "trace_hiding" else [""]
             for importance in importances:
@@ -120,8 +120,8 @@ for dataset in datasets:
                             f"{model_name}/{method_name}/"
                             f"{importance if method_name == 'trace_hiding' else ''}"
                         )
-                        mia_results_json_path = f"{results_folder}/evaluation/metrics_{MIA}_mia_epoch_{epoch}.json"
-                        perf_results_json_path = f"{results_folder}/evaluation/metrics_performance_epoch_{epoch}.json"
+                        mia_results_json_path = f"{results_folder}/evaluation/metrics_{MIA}_mia_epoch_{eval_epoch}.json"
+                        perf_results_json_path = f"{results_folder}/evaluation/metrics_performance_epoch_{eval_epoch}.json"
                         stats_results_json_path = find_unlearning_stats_json(results_folder) if method_name != "retraining" else f"{results_folder}/retrained_{model_name}_model.json"
                         data1 = {"mia": {"auc_roc": -1}, "time": -1}
                         data2 = {
@@ -133,13 +133,14 @@ for dataset in datasets:
                             with open(mia_results_json_path, "r") as f:
                                 data1 = {"mia": json.load(f)}
                         except (FileNotFoundError, json.JSONDecodeError):
-                            pass
+                            logging.warning(f"File not found or invalid JSON: {mia_results_json_path}")
+                        
                         
                         try:
                             with open(perf_results_json_path, "r") as f:
                                 data2 = json.load(f)
                         except (FileNotFoundError, json.JSONDecodeError):
-                            pass
+                            logging.warning(f"File not found or invalid JSON: {perf_results_json_path}")
                         
                         try:
                             if stats_results_json_path and method_name != "retraining":
@@ -154,7 +155,7 @@ for dataset in datasets:
                                     data1["time"] = stat_dict["training_time"]
                          
                         except (FileNotFoundError, json.JSONDecodeError):
-                            pass
+                            logging.warning(f"File not found or invalid JSON: {stats_results_json_path}")
                         
                         experiment_data.append({**data1, **data2})
 
