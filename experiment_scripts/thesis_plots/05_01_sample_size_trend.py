@@ -42,6 +42,12 @@ display_methods = [
     "Retraining",
 ]
 
+# Ensure correct indexing for methods
+idx_th = display_methods.index("TraceHiding (Ent.)")
+idx_ng = display_methods.index("NegGrad+")
+idx_ret = display_methods.index("Retraining")
+
+
 metrics = [
     ("UA", "UA_mean"),
     ("RA", "RA_mean"),
@@ -72,20 +78,20 @@ for ds_code, ds_pretty in DATASETS:
     speedup_row = []
 
     for metric, col in metrics:
-        for method in display_methods:
+        for method_idx, method in enumerate(display_methods):
             row = []
             for perc in sample_percents:
                 val = agg.loc[
                     (agg["method"] == method) & (agg["sample_percent"] == perc), col
                 ]
                 if len(val) == 1:
-                    val *= 100
-                    row.append(f"{val.values[0]:.2f}")
+                    val_float = val.values[0] * 100
+                    row.append(f"{val_float:.2f}")
                 else:
                     row.append("--")
             table_rows[metric].append(row)
 
-    for method in display_methods:
+    for method_idx, method in enumerate(display_methods):
         row = []
         for perc in sample_percents:
             retrain_time = agg.loc[
@@ -101,25 +107,71 @@ for ds_code, ds_pretty in DATASETS:
                 row.append("--")
         speedup_row.append(row)
     
-    # Build LaTeX rows only (not the full table)
+    # Build LaTeX rows with bolding
     tex_rows = []
-    for metric, col in metrics:
-        tex_row = f"& {metric} & " + " & ".join(table_rows[metric][0])
-        tex_row += " & "
-        tex_row += " & ".join(table_rows[metric][1])  
+    for metric_name, _ in metrics:
+        
+        th_values_str = table_rows[metric_name][idx_th]
+        ng_values_str = table_rows[metric_name][idx_ng]
+        ret_values_str = table_rows[metric_name][idx_ret]
+
+        formatted_th_row_parts = []
+        formatted_ng_row_parts = []
+
+        for i in range(len(sample_percents)):
+            th_s = th_values_str[i]
+            ng_s = ng_values_str[i]
+            ret_s = ret_values_str[i]
+
+            # Default to original string values
+            th_display = th_s
+            ng_display = ng_s
+
+            if th_s != "--" and ng_s != "--" and ret_s != "--":
+                try:
+                    th_v = float(th_s)
+                    ng_v = float(ng_s)
+                    ret_v = float(ret_s)
+
+                    diff_th = abs(th_v - ret_v)
+                    diff_ng = abs(ng_v - ret_v)
+
+                    # Lower difference is better (closer)
+                    if diff_th < diff_ng:
+                        th_display = f"\\textbf{{{th_s}}}"
+                    elif diff_ng < diff_th:
+                        ng_display = f"\\textbf{{{ng_s}}}"
+                    # If diff_th == diff_ng, neither is bolded specifically
+                except ValueError:
+                    # This might happen if parsing to float fails for an unexpected reason
+                    pass 
+            
+            formatted_th_row_parts.append(th_display)
+            formatted_ng_row_parts.append(ng_display)
+        
+        tex_row = f"& {metric_name} & " + " & ".join(formatted_th_row_parts)
+        tex_row += " & " # Separator between TraceHiding and NegGrad+ columns
+        tex_row += " & ".join(formatted_ng_row_parts)  
         tex_row += " \\\\"
         tex_rows.append(tex_row)
         
-    # Add speedup row
-    # tex_row = "& Speedup & " + " & ".join(speedup_row[0])
+    # Add speedup row (unchanged logic for bolding, but ensure correct indexing if needed)
+    # tex_row = "& Speedup & " + " & ".join(speedup_row[idx_th]) # Speedup for TraceHiding
     # tex_row += " & "
-    # tex_row += " & ".join(speedup_row[1])
+    # tex_row += " & ".join(speedup_row[idx_ng]) # Speedup for NegGrad+
     # tex_row += " \\\\"
     # tex_rows.append(tex_row)
-    
+    # Note: The original script's speedup row construction was commented out, 
+    # and if re-enabled, ensure it aligns with the table structure.
+    # If the table structure implies speedup is listed similarly, you might need:
+    # speedup_th_str = " & ".join(speedup_row[idx_th])
+    # speedup_ng_str = " & ".join(speedup_row[idx_ng])
+    # tex_row_speedup = f"& Speedup & {speedup_th_str} & {speedup_ng_str} \\\\"
+    # tex_rows.append(tex_row_speedup)
+
     contents = "\n".join(tex_rows)
     
-    output_path = f"experiment_scripts/thesis_plots/outputs/sample_size_{ds_pretty.replace('-', '').lower()}_rows.tex"
+    output_path = f"experiment_scripts/thesis_plots/outputs/sample_size_{ds_pretty}_rows_bolded.tex"
     with open(output_path, "w") as f:
         f.write(contents)
     print(f"Wrote {output_path}")
