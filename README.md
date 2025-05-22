@@ -14,7 +14,7 @@ As machine learning models increasingly rely on personal and location-based data
 
 ## ✨ Key Features
 
-* 📍 **Trajectory Unlearning**: Designed specifically for trajectory-based data with high spatial and temporal resolution.
+* 📍 **Trajectory Unlearning**: Designed specifically for trajectory-based data.
 * ⚖️ **Privacy–Utility Balance**: Optimizes privacy while preserving predictive performance.
 * 📊 **Influence Ranking**: Uses a hierarchical scoring system to rank tokens, trajectories, and users by their influence on the model.
 * 🧪 **Distillation Loss**: Applies a teacher–student distillation technique to retain useful patterns while forgetting specific data points.
