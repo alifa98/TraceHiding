@@ -22,7 +22,8 @@ As machine learning models increasingly rely on personal and location-based data
 
 ## 📂 Repository Structure
 
->[]
+> [!TIP]
+> you can browse the repository and explore in the directories. I will provide detailed explanation of each file and directory soon.
 
 ## 🚀 Getting Started
 
