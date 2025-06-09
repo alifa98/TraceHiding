@@ -45,24 +45,34 @@ If you use this code or ideas from this work, please cite:
 
 ```bibtex
 @article{faraji2025tracehiding,
-  author    = {Ali Faraji and Manos Papagelis},
-  title     = {{TraceHiding}: An Algorithmic Framework for Machine Unlearning in Mobility Data},
-  journal   = {ACM Transactions on Spatial Algorithms and Systems},
-  year      = {2025},
-  note      = {Submitted}
+  author = {Faraji, Ali and Papagelis, Manos},
+  title = {TraceHiding: An algorithmic framework for machine unlearning in mobility data},
+  year = {2025},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  journal = {ACM Transactions on Spatial Algorithms and Systems},
+  note = {Submitted}
 }
 ```
 
 Related publication:
 
 ```bibtex
-@inproceedings{faraji2023point2hex,
-  author    = {Ali Faraji and Jing Li and Gian Alix and Mahmoud Alsaeed and Nina Yanin and Amirhossein Nadiri and Manos Papagelis},
-  title     = {{Point2Hex}: Higher-order Mobility Flow Data and Resources},
-  booktitle = {Proc. of the 31st ACM International Conference on Advances in Geographic Information Systems (SIGSPATIAL '23)},
-  year      = {2023},
-  pages     = {69:1--69:4},
-  doi       = {10.1145/3589132.3625619}
+@inproceedings{faraji2023point,
+  author = {Faraji, Ali and Li, Jing and Alix, Gian and Alsaeed, Mahmoud and Yanin, Nina and Nadiri, Amirhossein and Papagelis, Manos},
+  title = {Point2Hex: Higher-order Mobility Flow Data and Resources},
+  year = {2023},
+  isbn = {9798400701689},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3589132.3625619},
+  doi = {10.1145/3589132.3625619},
+  booktitle = {Proceedings of the 31st ACM International Conference on Advances in Geographic Information Systems},
+  articleno = {69},
+  numpages = {4},
+  keywords = {trajectory datasets, higher-order mobility flow datasets, generator},
+  location = {Hamburg, Germany},
+  series = {SIGSPATIAL '23}
 }
 ```
 
